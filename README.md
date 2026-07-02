@@ -24,3 +24,7 @@ Data is stored only in browser `localStorage`. Marketplace results are mocked an
 ## Deploy
 
 Import the repository into Vercel. The included `vercel.json` supports client-side routing; the default Vite build settings are sufficient.
+
+## Mobile preparation
+
+The normalized SQLite schema and web-to-mobile plan live in `mobile/`. The schema has been executed against SQLite in memory to validate table, index, constraint, and foreign-key syntax.

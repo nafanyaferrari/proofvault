@@ -37,11 +37,14 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Original acceptance flow | Mostly complete (web) | Add item, attach evidence, save, score, incident selection, export, share/copy. Native camera remains deferred. |
 | Safe lifecycle controls | Complete (web) | Items archive without breaking incident evidence; incidents delete only after confirmation. |
 | Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
-| Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and eight logic/export tests pass. |
+| Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and nine logic/export tests pass. |
+| Printable large-evidence pagination | Complete | Print-specific page margins and break rules keep headings, evidence groups, and figures together without trapping a whole item on one page. |
+| Mobile SQLite schema design | Complete (preparation) | Normalized schema validated against SQLite; Expo implementation remains deferred. |
+| Web-to-mobile migration contract | Complete | Package boundaries, persistence mapping, migration order, and native security/file rules documented. |
 
 ## Next gap-closing sequence
 
-1. End-to-end web acceptance testing and screenshots.
-2. Refine printable layouts for large evidence sets.
-3. Mobile conversion preparation: shared-domain package and SQLite schema design.
+1. End-to-end web acceptance testing and screenshots when the browser runtime is restored.
+2. Extract a framework-free shared-domain package before starting Expo.
+3. Start Expo/SQLite implementation when the mobile phase is authorized.
 4. Expo/SQLite mobile conversion and native camera/biometric work.

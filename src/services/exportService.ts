@@ -75,7 +75,7 @@ function imageGroup(label: string, values?: string[]) {
   return `<div class="evidence"><h4>${html(label)}</h4><div class="photos">${images.map((value,index)=>`<figure><img src="${value}" alt="${html(label)} ${index+1}"><figcaption>${html(label)} ${index+1}</figcaption></figure>`).join('')}</div></div>`;
 }
 
-export function printableIncidentHtml(incident: Incident, items: InventoryItem[], tier: SubscriptionTier) {
+function printableIncidentHtmlBase(incident: Incident, items: InventoryItem[], tier: SubscriptionTier) {
   const cards = incident.items.map(affected => {
     const item = items.find(candidate => candidate.id === affected.itemId);
     if (!item) return '';
@@ -85,4 +85,20 @@ export function printableIncidentHtml(incident: Incident, items: InventoryItem[]
     return `<section><h2>${html(item.itemName)} <span>${html(affected.status.toUpperCase())}</span></h2>${evidence}<dl><dt>Serial Number</dt><dd>${html(item.serialNumber||'Not recorded')}</dd><dt>Owner-Applied Marking</dt><dd>${html(item.ownerMarking||'Not recorded')}</dd><dt>Location of Marking</dt><dd>${html(item.markingLocation||'Not recorded')}</dd><dt>Photo of Marking</dt><dd>${count(item.markingPhotos)} attached</dd><dt>Other Distinguishing Characteristics</dt><dd>${html(item.distinguishingFeatures||'Not recorded')}</dd><dt>Make / Model</dt><dd>${html([item.make,item.model].filter(Boolean).join(' ')||'Not recorded')}</dd><dt>User-entered value</dt><dd>${html(money(item.userEnteredValue))}</dd><dt>Approximate replacement estimate based on comparable listings</dt><dd>${html(money(item.estimatedReplacementValueSelected))}</dd><dt>Confidence / checked</dt><dd>${html(item.valuationConfidence||'Not estimated')} · ${html(dateTime(item.valuationCheckedAt))}</dd><dt>PDF supporting documents</dt><dd>${pdfCount}</dd><dt>Incident notes</dt><dd>${html(affected.notes||'None')}</dd><dt>Item notes</dt><dd>${html(item.notes||'None')}</dd></dl>${links?`<h3>Comparable listings</h3><ul>${links}</ul>`:''}<p class="disclaimer">${html(VALUATION_DISCLAIMER)}</p></section>`;
   }).join('');
   return `<!doctype html><html><head><meta charset="utf-8"><title>${html(incident.title)} — ProofVault</title><style>body{font:14px Arial,sans-serif;color:#172026;max-width:850px;margin:32px auto;padding:0 24px}header{border-bottom:3px solid #1b7f62;margin-bottom:24px}h1{margin-bottom:5px}section{page-break-inside:avoid;border:1px solid #ccd5d8;padding:18px;margin:16px 0}h2 span{font-size:11px;color:#a43b35}dl{display:grid;grid-template-columns:210px 1fr;gap:7px}dt{font-weight:bold}.evidence h4{margin-bottom:6px}.photos{display:flex;flex-wrap:wrap;gap:8px}.photos figure{margin:0}.photos img{width:150px;height:105px;object-fit:cover}.photos figcaption{font-size:9px;color:#65727a}.disclaimer{font-size:10px;color:#65727a;border-top:1px solid #ddd;padding-top:9px}@media print{body{margin:0}}</style></head><body><header><small>PROOFVAULT INCIDENT PACKET</small><h1>${html(incident.title)}</h1><p>${html(incident.type)} · ${html(incident.incidentDate)} · ${html(incident.location)}</p><h3>Owner / contact</h3><p>${html(incident.ownerName||'Not recorded')}<br>${html(incident.ownerPhone||'Not recorded')} · ${html(incident.ownerEmail||'Not recorded')}<br>${html(incident.ownerAddress||'Not recorded')}</p><p>Police: ${html(incident.policeAgency||'Not recorded')} · Case: ${html(incident.policeCaseNumber||'Not recorded')}<br>Insurance: ${html(incident.insuranceCompany||'Not recorded')} · Claim: ${html(incident.insuranceClaimNumber||'Not recorded')}</p></header>${cards}<script>window.addEventListener('load',()=>window.print())<\/script></body></html>`;
+}
+
+export function printableIncidentHtml(incident: Incident, items: InventoryItem[], tier: SubscriptionTier) {
+  const printEnhancements = `<style>
+    @page { size: auto; margin: 14mm; }
+    @media print {
+      body { max-width: none; padding: 0; font-size: 11pt; }
+      header { break-after: avoid; }
+      section { break-inside: auto; border-color: #9aa5aa; }
+      section > h2, section > dl, .evidence, .photos figure, h3, ul { break-inside: avoid; }
+      .evidence { break-before: auto; margin-top: 12px; }
+      .photos img { width: 44mm; height: 32mm; }
+      a { color: #172026; overflow-wrap: anywhere; }
+    }
+  </style>`;
+  return printableIncidentHtmlBase(incident, items, tier).replace('</head>', `${printEnhancements}</head>`);
 }
