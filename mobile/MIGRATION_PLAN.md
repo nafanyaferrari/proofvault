@@ -1,5 +1,7 @@
 # ProofVault web-to-mobile migration plan
 
+The first migration step is complete: `packages/domain` contains framework-neutral models, completeness rules, valuation contracts, marketplace adapter boundaries, formatting helpers, and the mock valuation engine. The web demo consumes it through compatibility re-exports, and the future Expo app can import it directly.
+
 The web MVP is the behavior prototype. The mobile implementation should use Expo, React Native, Expo Router, TypeScript, `expo-sqlite`, and Expo ImagePicker without changing the domain meaning of inventory, incidents, valuations, or comparable listings.
 
 ## Package boundaries
