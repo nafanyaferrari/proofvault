@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import type { InventoryItem } from '@proofvault/domain';
+import type { InventoryItem, ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
 type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; created_at: string; updated_at: string };
@@ -19,4 +19,20 @@ export async function initializeDatabase(db: SQLiteDatabase) {
 export async function listInventory(db: SQLiteDatabase) {
   const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,user_entered_value,condition,status,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
   return rows.map(fromRow);
+}
+
+export async function getLatestValuation(db: SQLiteDatabase, item: InventoryItem): Promise<InventoryItem> {
+  const valuation = await db.getFirstAsync<{ id:string; estimated_low:number|null; estimated_high:number|null; selected_value:number|null; currency:string; confidence:InventoryItem['valuationConfidence']; source_summary:string|null; checked_at:string|null; notes:string|null }>('SELECT id,estimated_low,estimated_high,selected_value,currency,confidence,source_summary,checked_at,notes FROM valuation_records WHERE item_id = ? ORDER BY checked_at DESC LIMIT 1', item.id);
+  if (!valuation) return item;
+  const comparableListings = await db.getAllAsync<{ id:string; title:string; marketplace:string; condition:InventoryItem['condition']; price:number; currency:string; url:string; image_url:string|null; match_reason:string; match_confidence:'low'|'medium'|'high'; checked_at:string }>('SELECT id,title,marketplace,condition,price,currency,url,image_url,match_reason,match_confidence,checked_at FROM comparable_listings WHERE valuation_id = ? ORDER BY price DESC', valuation.id);
+  return { ...item, estimatedReplacementValueLow: valuation.estimated_low ?? undefined, estimatedReplacementValueHigh: valuation.estimated_high ?? undefined, estimatedReplacementValueSelected: valuation.selected_value ?? undefined, valuationCurrency: valuation.currency, valuationConfidence: valuation.confidence ?? undefined, valuationSourceSummary: valuation.source_summary ?? undefined, valuationCheckedAt: valuation.checked_at ?? undefined, valuationNotes: valuation.notes ?? undefined, comparableListings: comparableListings.map(listing => ({ id:listing.id, title:listing.title, marketplace:listing.marketplace, condition:listing.condition, price:listing.price, currency:listing.currency, url:listing.url, imageUrl:listing.image_url ?? undefined, matchReason:listing.match_reason, matchConfidence:listing.match_confidence, checkedAt:listing.checked_at })) };
+}
+
+export async function saveValuation(db: SQLiteDatabase, itemId: string, result: ValuationResult) {
+  const id = `valuation_${Date.now()}`;
+  const checkedAt = result.comparableListings[0]?.checkedAt ?? new Date().toISOString();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('INSERT INTO valuation_records (id,item_id,estimated_low,estimated_high,selected_value,currency,confidence,source_summary,checked_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)', id, itemId, result.estimatedReplacementValueLow, result.estimatedReplacementValueHigh, result.suggestedReplacementValue, 'USD', result.confidence, result.sourceSummary, checkedAt, checkedAt, checkedAt);
+    for (const listing of result.comparableListings) await db.runAsync('INSERT INTO comparable_listings (id,valuation_id,title,marketplace,condition,price,currency,url,image_url,match_reason,match_confidence,checked_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', listing.id, id, listing.title, listing.marketplace, listing.condition, listing.price, listing.currency, listing.url, listing.imageUrl ?? null, listing.matchReason, listing.matchConfidence, listing.checkedAt);
+  });
 }
