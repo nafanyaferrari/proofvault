@@ -28,3 +28,5 @@ Import the repository into Vercel. The included `vercel.json` supports client-si
 ## Mobile preparation
 
 The normalized SQLite schema and web-to-mobile plan live in `mobile/`. The schema has been executed against SQLite in memory to validate table, index, constraint, and foreign-key syntax. Shared models, completeness scoring, valuation contracts, and the mock valuation engine live in `packages/domain` for both web and mobile.
+
+The install-ready Expo scaffold is in `apps/mobile`. When npm registry access is available, run `npm install`, then `npm run start --workspace @proofvault/mobile` and open it with Expo Go or an emulator.

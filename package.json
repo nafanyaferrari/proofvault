@@ -21,4 +21,5 @@
     "typescript": "latest"
   },
   "private": true
+  ,"workspaces": ["packages/*", "apps/*"]
 }

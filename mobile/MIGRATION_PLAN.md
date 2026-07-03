@@ -2,6 +2,8 @@
 
 The first migration step is complete: `packages/domain` contains framework-neutral models, completeness rules, valuation contracts, marketplace adapter boundaries, formatting helpers, and the mock valuation engine. The web demo consumes it through compatibility re-exports, and the future Expo app can import it directly.
 
+The Expo application scaffold now lives in `apps/mobile`. Its first vertical slice opens an on-device `proofvault.db`, applies the initial schema, seeds a sample inventory item, lists inventory, opens item detail, calculates completeness, and runs the shared mock Replacement Value Assist flow. Package installation remains a local setup step because the package registry was unavailable during scaffolding.
+
 The web MVP is the behavior prototype. The mobile implementation should use Expo, React Native, Expo Router, TypeScript, `expo-sqlite`, and Expo ImagePicker without changing the domain meaning of inventory, incidents, valuations, or comparable listings.
 
 ## Package boundaries
