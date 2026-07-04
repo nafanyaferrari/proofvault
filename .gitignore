@@ -2,6 +2,7 @@ node_modules/
 .npm-cache/
 .expo/
 dist/
+dist-native/
 work/
 outputs/
 *.tsbuildinfo

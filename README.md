@@ -34,3 +34,5 @@ The Expo scaffold is in `apps/mobile`, with dependencies installed and checked a
 The mobile item screen can take a camera photo or choose one from the device library. ProofVault copies selected evidence into its private documents directory and stores the durable local URI and metadata in SQLite.
 
 Mobile users can optionally enable App Lock. The preference is stored with Expo SecureStore, unlocking uses the device biometric/passcode flow, and the vault relocks when the app leaves the foreground.
+
+Run `npm run bundle:native --workspace @proofvault/mobile` to verify Metro can produce both Android and iOS bundles. Hardware acceptance steps are documented in `mobile/DEVICE_ACCEPTANCE.md`.
