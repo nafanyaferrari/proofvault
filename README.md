@@ -36,3 +36,5 @@ The mobile item screen can take a camera photo or choose one from the device lib
 Mobile users can optionally enable App Lock. The preference is stored with Expo SecureStore, unlocking uses the device biometric/passcode flow, and the vault relocks when the app leaves the foreground.
 
 Run `npm run bundle:native --workspace @proofvault/mobile` to verify Metro can produce both Android and iOS bundles. Hardware acceptance steps are documented in `mobile/DEVICE_ACCEPTANCE.md`.
+
+The mobile demo subscription is stored in SQLite and can be switched between free and premium without payment. Free mode keeps manual value entry available but blocks automatic comparable lookup; premium enables lookup and estimate persistence.

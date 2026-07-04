@@ -34,7 +34,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Five requested seed items | Complete | Drill, ring, bicycle, laptop, and storage tote. |
 | README/setup/test notes | Complete | Local setup and test flow documented. |
 | No paid services | Complete | Static Vercel hosting and local browser persistence. |
-| Original acceptance flow | Complete (web); mobile partial | Mobile inventory, photos, scoring, valuation persistence, and app lock are implemented; incident/export mobile screens remain. |
+| Original acceptance flow | Complete (web); mobile partial | Mobile inventory, photos, scoring, free/premium gating, valuation persistence, and app lock are implemented; incident/export mobile screens remain. |
 | Safe lifecycle controls | Complete (web) | Items archive without breaking incident evidence; incidents delete only after confirmation. |
 | Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
 | Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and nine logic/export tests pass. |

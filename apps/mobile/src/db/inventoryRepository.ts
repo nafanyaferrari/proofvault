@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
-import { uid, type InventoryDraft, type InventoryItem, type ValuationResult } from '@proofvault/domain';
+import { uid, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
 type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; created_at: string; updated_at: string };
@@ -19,6 +19,15 @@ export async function initializeDatabase(db: SQLiteDatabase) {
 export async function listInventory(db: SQLiteDatabase) {
   const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,user_entered_value,condition,status,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
   return rows.map(fromRow);
+}
+
+export async function getSubscriptionTier(db: SQLiteDatabase): Promise<SubscriptionTier> {
+  const setting=await db.getFirstAsync<{value:string}>('SELECT value FROM app_settings WHERE key = ?', 'subscriptionTier');
+  return setting?.value==='premium'?'premium':'free';
+}
+
+export async function setSubscriptionTier(db: SQLiteDatabase, tier: SubscriptionTier) {
+  await db.runAsync('INSERT INTO app_settings(key,value,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at', 'subscriptionTier', tier, new Date().toISOString());
 }
 
 export async function saveInventoryItem(db: SQLiteDatabase, draft: InventoryDraft, itemId?: string) {
