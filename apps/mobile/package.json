@@ -12,6 +12,8 @@
   "dependencies": {
     "@proofvault/domain": "file:../../packages/domain",
     "expo": "^56.0.0",
+    "expo-file-system": "~56.0.8",
+    "expo-image-picker": "~56.0.19",
     "expo-sqlite": "~56.0.5",
     "react": "19.2.3",
     "react-native": "0.85.3"

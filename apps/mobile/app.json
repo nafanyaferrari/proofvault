@@ -8,6 +8,6 @@
     "newArchEnabled": true,
     "ios": { "supportsTablet": true, "bundleIdentifier": "com.proofvault.app" },
     "android": { "package": "com.proofvault.app" },
-    "plugins": ["expo-sqlite"]
+    "plugins": ["expo-sqlite", ["expo-image-picker", { "photosPermission": "ProofVault uses your photo library only when you choose evidence to attach.", "cameraPermission": "ProofVault uses the camera to photograph inventory and identifying evidence.", "microphonePermission": false }]]
   }
 }

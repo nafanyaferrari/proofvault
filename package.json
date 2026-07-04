@@ -10,9 +10,9 @@
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "lucide-react": "latest",
-    "vite": "latest",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "vite": "latest"
   },
   "devDependencies": {
     "@types/react": "latest",
@@ -20,6 +20,9 @@
     "tsx": "latest",
     "typescript": "latest"
   },
-  "private": true
-  ,"workspaces": ["packages/*", "apps/*"]
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

@@ -4,6 +4,8 @@ The first migration step is complete: `packages/domain` contains framework-neutr
 
 The Expo application scaffold now lives in `apps/mobile`. Its first vertical slice opens an on-device `proofvault.db`, applies the initial schema, seeds a sample inventory item, lists inventory, opens item detail, calculates completeness, runs the shared mock Replacement Value Assist flow, and persists selected estimates and comparable listings. Dependencies are installed, type-checked, and aligned with Expo SDK 56.
 
+Schema migration 2 adds durable item-attachment records. Camera and library images are copied out of temporary picker storage into the app-private documents directory before their URI and metadata are committed to SQLite.
+
 The web MVP is the behavior prototype. The mobile implementation should use Expo, React Native, Expo Router, TypeScript, `expo-sqlite`, and Expo ImagePicker without changing the domain meaning of inventory, incidents, valuations, or comparable listings.
 
 ## Package boundaries
