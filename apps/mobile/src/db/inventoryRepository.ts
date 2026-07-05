@@ -2,10 +2,10 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { uid, type AttachmentType, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
-type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; owner_marking:string|null; marking_location:string|null; distinguishing_features:string|null; user_description:string|null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; created_at: string; updated_at: string };
+type ItemRow = { id: string; item_name: string; category: string; location_text: string; make: string | null; model: string | null; serial_number: string | null; owner_marking:string|null; marking_location:string|null; distinguishing_features:string|null; user_description:string|null; user_entered_value: number | null; condition: InventoryItem['condition']; status: InventoryItem['status']; archived_at:string|null; created_at: string; updated_at: string };
 
 const emptyEvidence = { comparableListings: [], photos: [], serialPhotos: [], markingPhotos: [], receiptFiles: [], appraisalFiles: [], warrantyFiles: [] };
-const fromRow = (row: ItemRow): InventoryItem => ({ id: row.id, itemName: row.item_name, category: row.category, location: row.location_text, make: row.make ?? undefined, model: row.model ?? undefined, serialNumber: row.serial_number ?? undefined, ownerMarking:row.owner_marking??undefined, markingLocation:row.marking_location??undefined, distinguishingFeatures:row.distinguishing_features??undefined, userDescription:row.user_description??undefined, userEnteredValue: row.user_entered_value ?? undefined, condition: row.condition, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at, ...emptyEvidence });
+const fromRow = (row: ItemRow): InventoryItem => ({ id: row.id, itemName: row.item_name, category: row.category, location: row.location_text, make: row.make ?? undefined, model: row.model ?? undefined, serialNumber: row.serial_number ?? undefined, ownerMarking:row.owner_marking??undefined, markingLocation:row.marking_location??undefined, distinguishingFeatures:row.distinguishing_features??undefined, userDescription:row.user_description??undefined, userEnteredValue: row.user_entered_value ?? undefined, condition: row.condition, status: row.status, archivedAt:row.archived_at??undefined, createdAt: row.created_at, updatedAt: row.updated_at, ...emptyEvidence });
 
 export async function initializeDatabase(db: SQLiteDatabase) {
   await db.execAsync(schema);
@@ -20,9 +20,13 @@ export async function initializeDatabase(db: SQLiteDatabase) {
 }
 
 export async function listInventory(db: SQLiteDatabase) {
-  const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,owner_marking,marking_location,distinguishing_features,user_description,user_entered_value,condition,status,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
+  const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,owner_marking,marking_location,distinguishing_features,user_description,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
   return rows.map(fromRow);
 }
+
+export async function listArchivedInventory(db:SQLiteDatabase){const rows=await db.getAllAsync<ItemRow>('SELECT id,item_name,category,location_text,make,model,serial_number,owner_marking,marking_location,distinguishing_features,user_description,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC');return rows.map(fromRow);}
+export async function archiveInventoryItem(db:SQLiteDatabase,itemId:string){const now=new Date().toISOString();await db.runAsync('UPDATE inventory_items SET archived_at=?,updated_at=? WHERE id=?',now,now,itemId);}
+export async function restoreInventoryItem(db:SQLiteDatabase,itemId:string){await db.runAsync('UPDATE inventory_items SET archived_at=NULL,updated_at=? WHERE id=?',new Date().toISOString(),itemId);}
 
 export async function getSubscriptionTier(db: SQLiteDatabase): Promise<SubscriptionTier> {
   const setting=await db.getFirstAsync<{value:string}>('SELECT value FROM app_settings WHERE key = ?', 'subscriptionTier');

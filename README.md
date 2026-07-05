@@ -52,3 +52,5 @@ Mobile incident packets are generated as local text files and shared through the
 Mobile incidents can be reopened and edited, including owner contact details, police agency/case number, and insurance company/claim number. A schema migration adds these fields to existing local databases.
 
 Each affected item can carry incident-specific notes. Incident deletion requires destructive confirmation and removes only the incident and its link rows, never the underlying inventory or evidence.
+
+Mobile inventory uses archive/restore instead of deletion. Archived items leave the active list but remain resolvable—with their valuations and evidence—in historical incident views and exports.

@@ -35,7 +35,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | README/setup/test notes | Complete | Local setup and test flow documented. |
 | No paid services | Complete | Static Vercel hosting and local browser persistence. |
 | Original acceptance flow | Complete (web and mobile core) | Mobile supports inventory, evidence, scoring, gating, valuation persistence, incident creation, native packet sharing, and app lock. |
-| Safe lifecycle controls | Complete (web); mobile incident deletion | Mobile incident deletion requires confirmation and preserves inventory/evidence; mobile inventory archiving remains. |
+| Safe lifecycle controls | Complete (web and mobile) | Mobile archive/restore preserves incident references and evidence; incident deletion requires confirmation. |
 | Dashboard completion guidance | Complete | Prioritizes weak records and gives the next documentation action. |
 | Automated browser acceptance run | Environment-blocked | Required in-app browser skill/runtime is missing from this session; production build and nine logic/export tests pass. |
 | Printable large-evidence pagination | Complete | Print-specific page margins and break rules keep headings, evidence groups, and figures together without trapping a whole item on one page. |
