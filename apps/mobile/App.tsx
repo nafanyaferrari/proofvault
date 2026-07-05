@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as SQLite from 'expo-sqlite';
-import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type AttachmentType, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
+import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type AttachmentType, type Incident, type IncidentDraft, type InventoryDraft, type InventoryItem, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { getLatestValuation, getSubscriptionTier, initializeDatabase, listInventory, saveInventoryItem, saveItemAttachment, saveValuation, setSubscriptionTier } from './src/db/inventoryRepository';
 import { chooseItemPhoto, takeItemPhoto } from './src/services/photoService';
 import { authenticateForVault, canUseAppLock, isAppLockEnabled, setAppLockEnabled } from './src/services/appLockService';
 import { InventoryEditor } from './src/components/InventoryEditor';
 import { chooseSupportingDocument } from './src/services/documentService';
+import { createIncident, listIncidents } from './src/db/incidentRepository';
+import { IncidentEditor } from './src/components/IncidentEditor';
 
 const dbPromise = SQLite.openDatabaseAsync('proofvault.db');
 
@@ -23,12 +25,15 @@ export default function App() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem>();
   const [tier, setTier] = useState<SubscriptionTier>('free');
+  const [incidents,setIncidents]=useState<Incident[]>([]);
+  const [screen,setScreen]=useState<'inventory'|'incidents'>('inventory');
+  const [incidentEditorOpen,setIncidentEditorOpen]=useState(false);
 
   const load = useCallback(async () => {
     const db = await dbPromise;
     await initializeDatabase(db);
-    const [inventory,subscriptionTier]=await Promise.all([listInventory(db),getSubscriptionTier(db)]);
-    setItems(inventory);setTier(subscriptionTier);
+    const [inventory,subscriptionTier,savedIncidents]=await Promise.all([listInventory(db),getSubscriptionTier(db),listIncidents(db)]);
+    setItems(inventory);setTier(subscriptionTier);setIncidents(savedIncidents);
     setLoading(false);
   }, []);
   useEffect(() => { void (async () => { const enabled = await isAppLockEnabled(); setLockEnabled(enabled); setLocked(enabled); setLockReady(true); if (!enabled) await load(); })(); }, [load]);
@@ -83,11 +88,19 @@ export default function App() {
     setEditorOpen(false);setEditingItem(undefined);
   }
   async function changeTier(nextTier: SubscriptionTier){const db=await dbPromise;await setSubscriptionTier(db,nextTier);setTier(nextTier);}
+  async function saveIncident(draft:IncidentDraft){const db=await dbPromise;await createIncident(db,draft);setIncidents(await listIncidents(db));setIncidentEditorOpen(false);}
   const editor=editorOpen?<InventoryEditor item={editingItem} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);}} onSave={saveEditor}/>:null;
+  const incidentEditor=incidentEditorOpen?<IncidentEditor inventory={items} onCancel={()=>setIncidentEditorOpen(false)} onSave={saveIncident}/>:null;
 
   if (!lockReady || (loading && !locked)) return <SafeAreaView style={styles.center}><ActivityIndicator color="#5dd6ad" /><Text style={styles.muted}>Opening your private vault…</Text></SafeAreaView>;
   if (locked) return <SafeAreaView style={styles.center}><Text style={styles.lockIcon}>◆</Text><Text style={styles.title}>ProofVault is locked</Text><Text style={styles.lockCopy}>Authenticate with your device to view private inventory records.</Text><Pressable accessibilityRole="button" style={styles.unlockButton} onPress={() => void unlock()}><Text style={styles.buttonText}>Unlock ProofVault</Text></Pressable></SafeAreaView>;
+  if (!selected&&screen==='incidents') return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
+    <View style={styles.navRow}><Pressable accessibilityRole="tab" accessibilityState={{selected:false}} style={styles.navButton} onPress={()=>setScreen('inventory')}><Text style={styles.secondaryButtonText}>Inventory</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{selected:true}} style={[styles.navButton,styles.navSelected]}><Text style={styles.planTextSelected}>Incidents</Text></Pressable></View>
+    <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Incidents</Text><Text style={styles.muted}>Record affected property while details are fresh.</Text><Pressable accessibilityRole="button" style={styles.button} onPress={()=>setIncidentEditorOpen(true)}><Text style={styles.buttonText}>Create incident</Text></Pressable>
+    {incidents.length?incidents.map(incident=><View key={incident.id} style={styles.card}><Text style={styles.cardTitle}>{incident.title}</Text><Text style={styles.muted}>{incident.type} · {incident.incidentDate}</Text><Text style={styles.value}>{incident.items.length} affected {incident.items.length===1?'item':'items'}</Text>{incident.items.map(affected=><Text key={affected.itemId} style={styles.documentName}>• {items.find(item=>item.id===affected.itemId)?.itemName??'Archived item'} — {affected.status}</Text>)}</View>):<View style={styles.card}><Text style={styles.muted}>No incidents recorded yet.</Text></View>}
+  </ScrollView></SafeAreaView>{incidentEditor}</>;
   if (!selected) return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
+    <View style={styles.navRow}><Pressable accessibilityRole="tab" accessibilityState={{selected:true}} style={[styles.navButton,styles.navSelected]}><Text style={styles.planTextSelected}>Inventory</Text></Pressable><Pressable accessibilityRole="tab" accessibilityState={{selected:false}} style={styles.navButton} onPress={()=>setScreen('incidents')}><Text style={styles.secondaryButtonText}>Incidents</Text></Pressable></View>
     <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Your inventory</Text><Text style={styles.muted}>Stored locally on this device.</Text>
     <Pressable accessibilityRole="button" style={styles.button} onPress={()=>{setEditingItem(undefined);setEditorOpen(true);}}><Text style={styles.buttonText}>Add inventory item</Text></Pressable>
     {items.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
@@ -126,6 +139,7 @@ const styles = StyleSheet.create({
   lockIcon:{color:'#5dd6ad',fontSize:34}, lockCopy:{color:'#8da39d',fontSize:15,textAlign:'center',maxWidth:300,lineHeight:22}, unlockButton:{backgroundColor:'#5dd6ad',borderRadius:12,paddingHorizontal:24,paddingVertical:14,marginTop:8}, settingRow:{flexDirection:'row',alignItems:'center',gap:12}, settingCopy:{flex:1,gap:5},
   planButton:{flex:1,borderColor:'#5dd6ad',borderWidth:1,borderRadius:10,padding:11,alignItems:'center'},planSelected:{backgroundColor:'#5dd6ad'},planTextSelected:{color:'#07110f',fontWeight:'800'},upgradeBox:{backgroundColor:'#0b1915',borderRadius:10,padding:12,gap:5},
   documentGrid:{flexDirection:'row',flexWrap:'wrap',gap:8},documentButton:{width:'48%',borderColor:'#5dd6ad',borderWidth:1,borderRadius:10,padding:10,alignItems:'center'},documentGroup:{gap:3,borderTopColor:'#29473e',borderTopWidth:1,paddingTop:8},documentLabel:{color:'#dbe9e4',fontWeight:'700'},documentName:{color:'#8da39d',fontSize:12},
+  navRow:{flexDirection:'row',gap:8},navButton:{flex:1,borderColor:'#5dd6ad',borderWidth:1,borderRadius:10,padding:11,alignItems:'center'},navSelected:{backgroundColor:'#5dd6ad'},
 });
 
 function DocumentButton({label,onPress}:{label:string;onPress():void}){return <Pressable accessibilityRole="button" style={styles.documentButton} onPress={onPress}><Text style={styles.secondaryButtonText}>{label}</Text></Pressable>}

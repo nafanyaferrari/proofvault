@@ -15,7 +15,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Add/Edit Item | Complete | Validation and local persistence. |
 | Item Detail | Complete | Identity, evidence, score, values, and valuation assist. |
 | Locations | Complete (web) | Dedicated local manager; item forms use saved-location suggestions. |
-| Incident Mode / Detail | Complete | Create/edit incidents and affected property. |
+| Incident Mode / Detail | Complete (web); mobile creation | Mobile creates incidents, selects affected inventory, and assigns per-item statuses; editing and export follow next. |
 | Export/Share Packet | Complete | Text, CSV, printable HTML/PDF, clipboard, and share sheet. |
 | Settings/About | Complete (web) | Plan controls, backup/restore, privacy/security, roadmap, and About content. |
 | All inventory fields | Complete (web model); mobile core fields | Mobile add/edit covers identity, description, condition, location, and manual value; extended evidence fields remain. |

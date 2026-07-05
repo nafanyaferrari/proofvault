@@ -44,3 +44,5 @@ Mobile evidence capture distinguishes general item photos, serial-number photos,
 Receipts, appraisals, warranties, and other supporting PDFs or images can be selected with the native document picker. Files are copied from temporary picker storage into ProofVault’s private documents directory and categorized in SQLite.
 
 Damage or loss photos have a separate mobile capture category and gallery so they remain distinguishable from general inventory evidence.
+
+The mobile Incidents tab can create a dated incident, select affected inventory, assign stolen/damaged/destroyed/missing/recovered status per item, and persist the relationships transactionally in SQLite.
