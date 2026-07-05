@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, AppState, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 import { completenessScore, money, valuationService, VALUATION_DISCLAIMER, type AttachmentType, type Incident, type IncidentDraft, type InventoryDraft, type InventoryItem, type LocationRecord, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { addLocation, archiveInventoryItem, getLatestValuation, getSubscriptionTier, initializeDatabase, listArchivedInventory, listInventory, listLocations, restoreInventoryItem, saveInventoryItem, saveItemAttachment, saveValuation, setSubscriptionTier } from './src/db/inventoryRepository';
@@ -34,6 +34,7 @@ export default function App() {
   const [incidentEditorOpen,setIncidentEditorOpen]=useState(false);
   const [editingIncident,setEditingIncident]=useState<Incident>();
   const [locations,setLocations]=useState<LocationRecord[]>([]);
+  const [inventoryQuery,setInventoryQuery]=useState('');
 
   const load = useCallback(async () => {
     const db = await dbPromise;
@@ -108,6 +109,11 @@ export default function App() {
   function confirmDeleteIncident(incident:Incident){Alert.alert('Delete incident?',`Delete “${incident.title}”? Inventory items and their evidence will not be deleted.`,[{text:'Cancel',style:'cancel'},{text:'Delete incident',style:'destructive',onPress:()=>void deleteIncident(incident.id)}]);}
   const editor=editorOpen?<InventoryEditor item={editingItem} locationSuggestions={locations.map(location=>location.name)} onCancel={()=>{setEditorOpen(false);setEditingItem(undefined);}} onSave={saveEditor}/>:null;
   const incidentEditor=incidentEditorOpen?<IncidentEditor incident={editingIncident} inventory={editingIncident?[...items,...archivedItems]:items} onCancel={()=>{setIncidentEditorOpen(false);setEditingIncident(undefined);}} onSave={saveIncident}/>:null;
+  const normalizedQuery=inventoryQuery.trim().toLowerCase();
+  const visibleItems=normalizedQuery?items.filter(item=>[item.itemName,item.category,item.location,item.room,item.make,item.model,item.serialNumber,item.barcode,item.ownerMarking].some(value=>value?.toLowerCase().includes(normalizedQuery))):items;
+  const valuedItems=items.filter(item=>item.userEnteredValue||item.estimatedReplacementValueSelected).length;
+  const identifiableItems=items.filter(item=>item.serialNumber||item.ownerMarking).length;
+  const weakItems=items.map(item=>({item,...completenessScore(item)})).filter(record=>record.score<45).sort((a,b)=>a.score-b.score);
 
   if (!lockReady || (loading && !locked)) return <SafeAreaView style={styles.center}><ActivityIndicator color="#5dd6ad" /><Text style={styles.muted}>Opening your private vault…</Text></SafeAreaView>;
   if (locked) return <SafeAreaView style={styles.center}><Text style={styles.lockIcon}>◆</Text><Text style={styles.title}>ProofVault is locked</Text><Text style={styles.lockCopy}>Authenticate with your device to view private inventory records.</Text><Pressable accessibilityRole="button" style={styles.unlockButton} onPress={() => void unlock()}><Text style={styles.buttonText}>Unlock ProofVault</Text></Pressable></SafeAreaView>;
@@ -120,8 +126,12 @@ export default function App() {
   if (!selected) return <><SafeAreaView style={styles.safe}><ScrollView contentContainerStyle={styles.page}>
     <MobileTabs selected="inventory" onSelect={setScreen}/>
     <Text style={styles.brand}>PROOFVAULT</Text><Text style={styles.title}>Your inventory</Text><Text style={styles.muted}>Stored locally on this device.</Text>
+    <View style={styles.metricRow}><View style={styles.metric}><Text style={styles.metricValue}>{items.length}</Text><Text style={styles.documentName}>Active items</Text></View><View style={styles.metric}><Text style={styles.metricValue}>{identifiableItems}</Text><Text style={styles.documentName}>Identifiable</Text></View><View style={styles.metric}><Text style={styles.metricValue}>{valuedItems}</Text><Text style={styles.documentName}>With values</Text></View></View>
+    {weakItems.length?<View style={styles.card}><Text style={styles.cardTitle}>Records needing attention</Text><Text style={styles.muted}>Add identity, photos, values, or documentation before a loss occurs.</Text>{weakItems.slice(0,3).map(record=><Pressable accessibilityRole="button" key={record.item.id} style={styles.archivedRow} onPress={()=>void openItem(record.item)}><View style={styles.settingCopy}><Text style={styles.value}>{record.item.itemName}</Text><Text style={styles.documentName}>{record.score}% · {record.feedback}</Text></View></Pressable>)}</View>:null}
+    <TextInput accessibilityLabel="Search inventory" value={inventoryQuery} onChangeText={setInventoryQuery} placeholder="Search name, serial, barcode, location…" placeholderTextColor="#60756e" style={styles.search}/>
     <Pressable accessibilityRole="button" style={styles.button} onPress={()=>{setEditingItem(undefined);setEditorOpen(true);}}><Text style={styles.buttonText}>Add inventory item</Text></Pressable>
-    {items.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
+    {visibleItems.map(item => <Pressable accessibilityRole="button" key={item.id} style={styles.card} onPress={() => void openItem(item)}><Text style={styles.cardTitle}>{item.itemName}</Text><Text style={styles.muted}>{item.category} · {item.location}</Text><Text style={styles.value}>{money(item.userEnteredValue)}</Text></Pressable>)}
+    {normalizedQuery&&!visibleItems.length?<View style={styles.card}><Text style={styles.muted}>No active inventory matches “{inventoryQuery.trim()}”.</Text></View>:null}
     {archivedItems.length?<View style={styles.card}><Text style={styles.cardTitle}>Archived inventory</Text><Text style={styles.muted}>Archived items remain available to historical incidents and exports.</Text>{archivedItems.map(item=><View key={item.id} style={styles.archivedRow}><View style={styles.settingCopy}><Text style={styles.value}>{item.itemName}</Text><Text style={styles.documentName}>Archived {item.archivedAt?new Date(item.archivedAt).toLocaleDateString():''}</Text></View><Pressable accessibilityRole="button" style={styles.restoreButton} onPress={()=>void restoreItem(item.id)}><Text style={styles.secondaryButtonText}>Restore</Text></Pressable></View>)}</View>:null}
   </ScrollView></SafeAreaView>{editor}</>;
 
@@ -160,6 +170,7 @@ const styles = StyleSheet.create({
   dangerButton:{borderColor:'#b75858',borderWidth:1,borderRadius:10,padding:10,alignItems:'center'},dangerText:{color:'#ffaaa5',fontWeight:'800'},
   archivedRow:{flexDirection:'row',alignItems:'center',gap:10,borderTopColor:'#29473e',borderTopWidth:1,paddingTop:9},restoreButton:{borderColor:'#5dd6ad',borderWidth:1,borderRadius:9,paddingHorizontal:12,paddingVertical:8},
   incidentEvidence:{borderTopColor:'#29473e',borderTopWidth:1,paddingTop:9,gap:7},incidentPhoto:{width:110,height:82,borderRadius:8,backgroundColor:'#07110f'},
+  metricRow:{flexDirection:'row',gap:8},metric:{flex:1,backgroundColor:'#10201c',borderColor:'#203b34',borderWidth:1,borderRadius:12,padding:12,gap:3},metricValue:{color:'#5dd6ad',fontSize:24,fontWeight:'800'},search:{color:'#f2faf7',backgroundColor:'#10201c',borderColor:'#29473e',borderWidth:1,borderRadius:12,padding:13,fontSize:16},
 });
 
 function DocumentButton({label,onPress}:{label:string;onPress():void}){return <Pressable accessibilityRole="button" style={styles.documentButton} onPress={onPress}><Text style={styles.secondaryButtonText}>{label}</Text></Pressable>}

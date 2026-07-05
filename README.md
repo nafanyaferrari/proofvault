@@ -62,3 +62,5 @@ The mobile Settings tab contains reusable saved locations, App Lock, demo subscr
 Mobile Settings can export and restore an exact SQLite database image. Restore validates the file header, database integrity, and required ProofVault tables before replacement. This database-only backup preserves records and file references but does not embed app-private photo/document files.
 
 Mobile item editing now covers the full core record: location/room, make/model, serial, barcode, owner marking details, distinguishing features, purchase date/price, manual value, condition, current status, description, and notes.
+
+The mobile inventory dashboard shows active, identifiable, and valued counts, prioritizes weak records, and searches across item identity, product, barcode, marking, and location fields.
