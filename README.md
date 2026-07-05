@@ -64,3 +64,5 @@ Mobile Settings can export and restore an exact SQLite database image. Restore v
 Mobile item editing now covers the full core record: location/room, make/model, serial, barcode, owner marking details, distinguishing features, purchase date/price, manual value, condition, current status, description, and notes.
 
 The mobile inventory dashboard shows active, identifiable, and valued counts, prioritizes weak records, and searches across item identity, product, barcode, marking, and location fields.
+
+AI Description Assist now uses one shared mock service on web and mobile. Mobile stores suggestions separately from user-authored descriptions, labels them as unverified, and reports missing recommended fields.

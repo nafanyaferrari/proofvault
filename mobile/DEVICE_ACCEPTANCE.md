@@ -20,6 +20,7 @@ Run these on one current iPhone and one current Android device before a store bu
 6. Record an owner marking and location, attach separate serial and marking photos, reopen the item, and confirm each appears under the correct heading.
 7. Attach a receipt, appraisal, warranty, and other PDF; restart and confirm each remains under the correct heading.
 8. Attach a damage/loss photo and confirm it does not appear in the general item-photo gallery.
+9. Generate an AI description, confirm it is labeled unverified, and verify the user-authored description remains unchanged.
 8. Create an incident with two affected items and different statuses; restart and confirm both relationships persist.
 9. Edit that incident with owner, police case, and insurance claim details; reopen it and confirm changes persist.
 10. Add different notes to both affected items and confirm the shared packet keeps each note with the correct item.

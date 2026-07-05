@@ -22,7 +22,7 @@ Status as of 2026-07-05. The repository contains a deployed React/Vite web MVP p
 | All evidence categories | Complete (web and mobile) | Mobile supports labeled general, serial, marking, damage/loss, receipt, appraisal, warranty, and other evidence. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
 | Owner-applied markings first-class | Complete (web and mobile core) | Mobile stores marking text, location, distinguishing features, and separately labeled marking photos. |
-| Mock AI description service/UI | Complete | Typed mock service, review UI, missing-field guidance, and explicit verification labeling. |
+| Mock AI description service/UI | Complete (web and mobile) | Shared typed mock service, saved suggestions, missing-field guidance, and explicit verification labeling. |
 | Documentation completeness score | Complete | 0–100 score and plain-language feedback. |
 | Incident-specific notes | Complete (web and mobile) | Stored per affected item and included in packets. |
 | Incident-specific photos | Complete (web and mobile) | Stored per affected item; mobile packets include a labeled count. |
