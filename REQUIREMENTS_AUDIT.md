@@ -25,7 +25,7 @@ Status as of 2026-07-01. The current deliverable is a responsive React/Vite web 
 | Mock AI description service/UI | Complete | Typed mock service, review UI, missing-field guidance, and explicit verification labeling. |
 | Documentation completeness score | Complete | 0–100 score and plain-language feedback. |
 | Incident-specific notes | Complete (web and mobile) | Stored per affected item and included in packets. |
-| Incident-specific photos | Complete (web) | Per affected item with local size safeguards and export rendering. |
+| Incident-specific photos | Complete (web and mobile) | Stored per affected item; mobile packets include a labeled count. |
 | Export owner/contact placeholders | Complete | Name, phone, email, and mailing address in incident forms and exports. |
 | Export full evidence rendering | Complete (web) | Labeled item, serial, marking, incident, damage, receipt, appraisal, warranty, and other evidence groups. |
 | App lock | Complete (mobile implementation) | Optional device authentication, secure preference storage, and foreground relocking; physical-device acceptance remains. |

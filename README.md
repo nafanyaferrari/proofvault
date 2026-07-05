@@ -54,3 +54,5 @@ Mobile incidents can be reopened and edited, including owner contact details, po
 Each affected item can carry incident-specific notes. Incident deletion requires destructive confirmation and removes only the incident and its link rows, never the underlying inventory or evidence.
 
 Mobile inventory uses archive/restore instead of deletion. Archived items leave the active list but remain resolvable—with their valuations and evidence—in historical incident views and exports.
+
+Incident-specific camera/library photos attach to an affected item within one incident. They remain separate from general and damage/loss inventory evidence, persist through incident edits, and appear as a labeled count in shared packets.

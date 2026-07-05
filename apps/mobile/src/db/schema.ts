@@ -30,6 +30,11 @@ CREATE TABLE IF NOT EXISTS incident_items (
   item_id TEXT NOT NULL REFERENCES inventory_items(id) ON DELETE RESTRICT,
   status TEXT NOT NULL, notes TEXT, PRIMARY KEY(incident_id,item_id)
 );
+CREATE TABLE IF NOT EXISTS incident_attachments (
+  id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, item_id TEXT NOT NULL, local_uri TEXT NOT NULL,
+  mime_type TEXT, original_name TEXT, created_at TEXT NOT NULL,
+  FOREIGN KEY(incident_id,item_id) REFERENCES incident_items(incident_id,item_id) ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS comparable_listings (
   id TEXT PRIMARY KEY, valuation_id TEXT NOT NULL REFERENCES valuation_records(id) ON DELETE CASCADE,
   title TEXT NOT NULL, marketplace TEXT NOT NULL, condition TEXT NOT NULL, price REAL NOT NULL, currency TEXT NOT NULL,
@@ -39,10 +44,12 @@ CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NU
 CREATE INDEX IF NOT EXISTS idx_inventory_status ON inventory_items(status, archived_at);
 CREATE INDEX IF NOT EXISTS idx_item_attachments_item ON item_attachments(item_id, attachment_type);
 CREATE INDEX IF NOT EXISTS idx_incident_date ON incidents(incident_date);
+CREATE INDEX IF NOT EXISTS idx_incident_attachments_item ON incident_attachments(incident_id,item_id);
 CREATE INDEX IF NOT EXISTS idx_valuation_item ON valuation_records(item_id, checked_at);
 INSERT OR IGNORE INTO app_settings(key,value,updated_at) VALUES ('subscriptionTier','premium',datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (1,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (2,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (3,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (4,datetime('now'));
+INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (5,datetime('now'));
 `;
