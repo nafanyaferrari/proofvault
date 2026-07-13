@@ -8,7 +8,8 @@ export interface ItemIntakeResult {
   suggestedDescription:string;
   fieldConfidence:Record<'make'|'model'|'serialNumber',Confidence>;
   needsSerialVerification:boolean;
-  provider:'mock';
+  provider:'mock'|'secure-backend';
+  warnings?:string[];
   valuation?:ValuationResult;
 }
 export interface ItemIntakeAnalyzer { analyze(input:ItemIntakeInput, includeValuation:boolean):Promise<ItemIntakeResult>; }
@@ -20,6 +21,6 @@ export const itemIntakeService:ItemIntakeAnalyzer={
   async analyze(input,includeValuation){
     await new Promise(resolve=>setTimeout(resolve,650));
     const draft:InventoryDraft={itemName:'Cordless drill/driver kit',category:'Tools',location:input.location||'Unassigned',room:input.room||'',make:'Milwaukee',model:'M18',serialNumber:'VERIFY-48291',barcode:'',ownerMarking:'',markingType:'',markingLocation:'',markingNotes:'',distinguishingFeatures:'Red and black cordless drill with battery and carrying case',purchaseDate:'',userDescription:'Milwaukee M18 cordless drill/driver kit shown with battery and carrying case. Make, model, accessories, condition, and serial number should be verified against the physical item.',notes:'Created by simulated photo intake.',condition:'used',status:'normal'};
-    return {draft,suggestedTitle:'Milwaukee M18 cordless drill/driver kit',suggestedDescription:draft.userDescription,fieldConfidence:{make:'high',model:'medium',serialNumber:'low'},needsSerialVerification:true,provider:'mock',valuation:includeValuation?await valuationService.findComparableValues({...draft,photos:[input.photoUri]}):undefined};
+    return {draft,suggestedTitle:'Milwaukee M18 cordless drill/driver kit',suggestedDescription:draft.userDescription,fieldConfidence:{make:'high',model:'medium',serialNumber:'low'},needsSerialVerification:true,provider:'mock',warnings:['Demo mode uses a fixed simulated recognition result and does not inspect image pixels yet.'],valuation:includeValuation?await valuationService.findComparableValues({...draft,photos:[input.photoUri]}):undefined};
   }
 };

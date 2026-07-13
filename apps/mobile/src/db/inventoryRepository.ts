@@ -2,16 +2,19 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { uid, type AttachmentType, type InventoryDraft, type InventoryItem, type LocationRecord, type SubscriptionTier, type ValuationResult } from '@proofvault/domain';
 import { schema } from './schema';
 
-type ItemRow = { id:string;item_name:string;ai_suggested_title:string|null;ai_description:string|null;category:string;location_text:string;room:string|null;make:string|null;model:string|null;serial_number:string|null;barcode:string|null;owner_marking:string|null;marking_type:string|null;marking_location:string|null;marking_notes:string|null;distinguishing_features:string|null;purchase_date:string|null;purchase_price:number|null;user_description:string|null;notes:string|null;user_entered_value:number|null;condition:InventoryItem['condition'];status:InventoryItem['status'];archived_at:string|null;created_at:string;updated_at:string };
+type ItemRow = { id:string;item_name:string;ai_suggested_title:string|null;ai_description:string|null;ai_fields_reviewed_at:string|null;category:string;location_text:string;room:string|null;make:string|null;model:string|null;serial_number:string|null;barcode:string|null;owner_marking:string|null;marking_type:string|null;marking_location:string|null;marking_notes:string|null;distinguishing_features:string|null;purchase_date:string|null;purchase_price:number|null;user_description:string|null;notes:string|null;user_entered_value:number|null;condition:InventoryItem['condition'];status:InventoryItem['status'];archived_at:string|null;created_at:string;updated_at:string };
+export interface BatchDefaults { location:string; room:string; }
 
 const emptyEvidence = { comparableListings: [], photos: [], serialPhotos: [], markingPhotos: [], receiptFiles: [], appraisalFiles: [], warrantyFiles: [] };
-const fromRow = (row: ItemRow): InventoryItem => ({ id:row.id,itemName:row.item_name,aiSuggestedTitle:row.ai_suggested_title??undefined,aiDescription:row.ai_description??undefined,category:row.category,location:row.location_text,room:row.room??undefined,make:row.make??undefined,model:row.model??undefined,serialNumber:row.serial_number??undefined,barcode:row.barcode??undefined,ownerMarking:row.owner_marking??undefined,markingType:row.marking_type??undefined,markingLocation:row.marking_location??undefined,markingNotes:row.marking_notes??undefined,distinguishingFeatures:row.distinguishing_features??undefined,purchaseDate:row.purchase_date??undefined,purchasePrice:row.purchase_price??undefined,userDescription:row.user_description??undefined,notes:row.notes??undefined,userEnteredValue:row.user_entered_value??undefined,condition:row.condition,status:row.status,archivedAt:row.archived_at??undefined,createdAt:row.created_at,updatedAt:row.updated_at,...emptyEvidence });
+const fromRow = (row: ItemRow): InventoryItem => ({ id:row.id,itemName:row.item_name,aiSuggestedTitle:row.ai_suggested_title??undefined,aiDescription:row.ai_description??undefined,aiFieldsReviewedAt:row.ai_fields_reviewed_at??undefined,category:row.category,location:row.location_text,room:row.room??undefined,make:row.make??undefined,model:row.model??undefined,serialNumber:row.serial_number??undefined,barcode:row.barcode??undefined,ownerMarking:row.owner_marking??undefined,markingType:row.marking_type??undefined,markingLocation:row.marking_location??undefined,markingNotes:row.marking_notes??undefined,distinguishingFeatures:row.distinguishing_features??undefined,purchaseDate:row.purchase_date??undefined,purchasePrice:row.purchase_price??undefined,userDescription:row.user_description??undefined,notes:row.notes??undefined,userEnteredValue:row.user_entered_value??undefined,condition:row.condition,status:row.status,archivedAt:row.archived_at??undefined,createdAt:row.created_at,updatedAt:row.updated_at,...emptyEvidence });
 
 export async function initializeDatabase(db: SQLiteDatabase) {
   await db.execAsync(schema);
   const incidentColumns=await db.getAllAsync<{name:string}>('PRAGMA table_info(incidents)');
   const existing=new Set(incidentColumns.map(column=>column.name));
   for(const column of ['owner_name','owner_phone','owner_email','owner_address','police_agency','police_case_number','insurance_company','insurance_claim_number'])if(!existing.has(column))await db.execAsync(`ALTER TABLE incidents ADD COLUMN ${column} TEXT`);
+  const itemColumns=await db.getAllAsync<{name:string}>('PRAGMA table_info(inventory_items)');
+  if(!itemColumns.some(column=>column.name==='ai_fields_reviewed_at'))await db.execAsync('ALTER TABLE inventory_items ADD COLUMN ai_fields_reviewed_at TEXT');
   const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM inventory_items');
   if (!result?.count) {
     const now = new Date().toISOString();
@@ -20,16 +23,19 @@ export async function initializeDatabase(db: SQLiteDatabase) {
 }
 
 export async function listInventory(db: SQLiteDatabase) {
-  const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,ai_suggested_title,ai_description,category,location_text,room,make,model,serial_number,barcode,owner_marking,marking_type,marking_location,marking_notes,distinguishing_features,purchase_date,purchase_price,user_description,notes,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
+  const rows = await db.getAllAsync<ItemRow>('SELECT id,item_name,ai_suggested_title,ai_description,ai_fields_reviewed_at,category,location_text,room,make,model,serial_number,barcode,owner_marking,marking_type,marking_location,marking_notes,distinguishing_features,purchase_date,purchase_price,user_description,notes,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NULL ORDER BY updated_at DESC');
   return rows.map(fromRow);
 }
 
-export async function listArchivedInventory(db:SQLiteDatabase){const rows=await db.getAllAsync<ItemRow>('SELECT id,item_name,ai_suggested_title,ai_description,category,location_text,room,make,model,serial_number,barcode,owner_marking,marking_type,marking_location,marking_notes,distinguishing_features,purchase_date,purchase_price,user_description,notes,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC');return rows.map(fromRow);}
+export async function listArchivedInventory(db:SQLiteDatabase){const rows=await db.getAllAsync<ItemRow>('SELECT id,item_name,ai_suggested_title,ai_description,ai_fields_reviewed_at,category,location_text,room,make,model,serial_number,barcode,owner_marking,marking_type,marking_location,marking_notes,distinguishing_features,purchase_date,purchase_price,user_description,notes,user_entered_value,condition,status,archived_at,created_at,updated_at FROM inventory_items WHERE archived_at IS NOT NULL ORDER BY archived_at DESC');return rows.map(fromRow);}
 export async function archiveInventoryItem(db:SQLiteDatabase,itemId:string){const now=new Date().toISOString();await db.runAsync('UPDATE inventory_items SET archived_at=?,updated_at=? WHERE id=?',now,now,itemId);}
 export async function restoreInventoryItem(db:SQLiteDatabase,itemId:string){await db.runAsync('UPDATE inventory_items SET archived_at=NULL,updated_at=? WHERE id=?',new Date().toISOString(),itemId);}
 export async function listLocations(db:SQLiteDatabase):Promise<LocationRecord[]>{return await db.getAllAsync<LocationRecord>('SELECT id,name,notes,created_at AS createdAt FROM locations ORDER BY name COLLATE NOCASE');}
 export async function addLocation(db:SQLiteDatabase,name:string){const now=new Date().toISOString();await db.runAsync('INSERT INTO locations(id,name,created_at,updated_at) VALUES (?,?,?,?)',uid('location'),name.trim(),now,now);}
 export async function saveAiDescription(db:SQLiteDatabase,itemId:string,suggestedTitle:string,description:string){await db.runAsync('UPDATE inventory_items SET ai_suggested_title=?,ai_description=?,updated_at=? WHERE id=?',suggestedTitle,description,new Date().toISOString(),itemId);}
+export async function markAiFieldsReviewed(db:SQLiteDatabase,itemId:string){const now=new Date().toISOString();await db.runAsync('UPDATE inventory_items SET ai_fields_reviewed_at=?,updated_at=? WHERE id=?',now,now,itemId);}
+export async function saveUserEnteredValue(db:SQLiteDatabase,itemId:string,value:number){await db.runAsync('UPDATE inventory_items SET user_entered_value=?,updated_at=? WHERE id=?',value,new Date().toISOString(),itemId);}
+export async function saveSerialNumber(db:SQLiteDatabase,itemId:string,serialNumber:string){await db.runAsync('UPDATE inventory_items SET serial_number=?,updated_at=? WHERE id=?',serialNumber.trim(),new Date().toISOString(),itemId);}
 
 export async function getSubscriptionTier(db: SQLiteDatabase): Promise<SubscriptionTier> {
   const setting=await db.getFirstAsync<{value:string}>('SELECT value FROM app_settings WHERE key = ?', 'subscriptionTier');
@@ -40,10 +46,24 @@ export async function setSubscriptionTier(db: SQLiteDatabase, tier: Subscription
   await db.runAsync('INSERT INTO app_settings(key,value,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at', 'subscriptionTier', tier, new Date().toISOString());
 }
 
+export async function getBatchDefaults(db: SQLiteDatabase): Promise<BatchDefaults> {
+  const rows=await db.getAllAsync<{key:string;value:string}>("SELECT key,value FROM app_settings WHERE key IN ('batchLocation','batchRoom')");
+  const settings=Object.fromEntries(rows.map(row=>[row.key,row.value]));
+  return {location:settings.batchLocation??'',room:settings.batchRoom??''};
+}
+
+export async function setBatchDefaults(db: SQLiteDatabase, defaults: BatchDefaults) {
+  const now=new Date().toISOString();
+  await db.withTransactionAsync(async()=>{
+    await db.runAsync('INSERT INTO app_settings(key,value,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at','batchLocation',defaults.location,now);
+    await db.runAsync('INSERT INTO app_settings(key,value,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at','batchRoom',defaults.room,now);
+  });
+}
+
 export async function saveInventoryItem(db: SQLiteDatabase, draft: InventoryDraft, itemId?: string) {
   const now = new Date().toISOString();
   if (itemId) {
-    await db.runAsync('UPDATE inventory_items SET item_name=?,category=?,location_text=?,room=?,make=?,model=?,serial_number=?,barcode=?,has_owner_marking=?,owner_marking=?,marking_type=?,marking_location=?,marking_notes=?,distinguishing_features=?,purchase_date=?,purchase_price=?,user_description=?,notes=?,user_entered_value=?,condition=?,status=?,updated_at=? WHERE id=?',draft.itemName.trim(),draft.category.trim(),draft.location.trim(),draft.room.trim()||null,draft.make.trim()||null,draft.model.trim()||null,draft.serialNumber.trim()||null,draft.barcode.trim()||null,draft.ownerMarking.trim()?1:0,draft.ownerMarking.trim()||null,draft.markingType.trim()||null,draft.markingLocation.trim()||null,draft.markingNotes.trim()||null,draft.distinguishingFeatures.trim()||null,draft.purchaseDate.trim()||null,draft.purchasePrice??null,draft.userDescription.trim()||null,draft.notes.trim()||null,draft.userEnteredValue??null,draft.condition,draft.status,now,itemId);
+    await db.runAsync('UPDATE inventory_items SET item_name=?,category=?,location_text=?,room=?,make=?,model=?,serial_number=?,barcode=?,has_owner_marking=?,owner_marking=?,marking_type=?,marking_location=?,marking_notes=?,distinguishing_features=?,purchase_date=?,purchase_price=?,user_description=?,notes=?,user_entered_value=?,condition=?,status=?,ai_fields_reviewed_at=COALESCE(ai_fields_reviewed_at,CASE WHEN ai_suggested_title IS NOT NULL OR ai_description IS NOT NULL THEN ? ELSE NULL END),updated_at=? WHERE id=?',draft.itemName.trim(),draft.category.trim(),draft.location.trim(),draft.room.trim()||null,draft.make.trim()||null,draft.model.trim()||null,draft.serialNumber.trim()||null,draft.barcode.trim()||null,draft.ownerMarking.trim()?1:0,draft.ownerMarking.trim()||null,draft.markingType.trim()||null,draft.markingLocation.trim()||null,draft.markingNotes.trim()||null,draft.distinguishingFeatures.trim()||null,draft.purchaseDate.trim()||null,draft.purchasePrice??null,draft.userDescription.trim()||null,draft.notes.trim()||null,draft.userEnteredValue??null,draft.condition,draft.status,now,now,itemId);
     return itemId;
   }
   const id=uid('item');

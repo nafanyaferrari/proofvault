@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">
+  <rect width="320" height="240" fill="#10201c"/>
+  <rect x="54" y="70" width="212" height="96" rx="16" fill="#5dd6ad"/>
+  <rect x="82" y="96" width="156" height="20" rx="6" fill="#07110f"/>
+  <text x="160" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#07110f">QA ITEM</text>
+</svg>

@@ -7,7 +7,7 @@ export type AttachmentType = 'item' | 'serial' | 'marking' | 'receipt' | 'apprai
 export interface LocationRecord { id: string; name: string; notes?: string; createdAt: string; }
 export interface ComparableListing { id: string; title: string; marketplace: string; condition: ItemCondition; price: number; currency: string; url: string; imageUrl?: string; matchReason: string; matchConfidence: Confidence; checkedAt: string; }
 export interface InventoryItem {
-  id: string; itemName: string; aiSuggestedTitle?: string; aiDescription?: string; userDescription?: string;
+  id: string; itemName: string; aiSuggestedTitle?: string; aiDescription?: string; aiFieldsReviewedAt?: string; userDescription?: string;
   category: string; location: string; room?: string; make?: string; model?: string; serialNumber?: string;
   barcode?: string; ownerMarking?: string; markingType?: string; markingLocation?: string;
   distinguishingFeatures?: string; purchaseDate?: string; condition: ItemCondition; purchasePrice?: number;

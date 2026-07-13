@@ -8,6 +8,7 @@ import { aiDescriptionService, AiDescriptionResult } from '../services/aiDescrip
 interface ItemFormProps {
   item?: InventoryItem;
   assisted?: boolean;
+  assistedWarnings?: string[];
   locations: LocationRecord[];
   onCancel: () => void;
   onSave: (item: InventoryItem) => void;
@@ -23,7 +24,7 @@ const emptyItem = (): InventoryItem => {
   };
 };
 
-export function ItemForm({ item, assisted = false, locations, onCancel, onSave, onSaveAndAddAnother }: ItemFormProps) {
+export function ItemForm({ item, assisted = false, assistedWarnings = [], locations, onCancel, onSave, onSaveAndAddAnother }: ItemFormProps) {
   const [draft, setDraft] = useState<InventoryItem>(() => item ? {...item,damagePhotos:item.damagePhotos??[]} : emptyItem());
   const [error, setError] = useState('');
   const [aiResult,setAiResult]=useState<AiDescriptionResult>();
@@ -43,7 +44,9 @@ export function ItemForm({ item, assisted = false, locations, onCancel, onSave, 
 
   const validatedDraft = () => {
     if (!draft.itemName.trim() || !draft.location.trim()) { setError('Item name and location are required.'); return; }
-    return {...draft, itemName:draft.itemName.trim(), location:draft.location.trim(), updatedAt:new Date().toISOString()};
+    const now = new Date().toISOString();
+    const hasAiAssist = Boolean(draft.aiDescription || draft.aiSuggestedTitle);
+    return {...draft, itemName:draft.itemName.trim(), location:draft.location.trim(), aiFieldsReviewedAt:hasAiAssist ? draft.aiFieldsReviewedAt ?? now : undefined, updatedAt:now};
   };
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -58,7 +61,7 @@ export function ItemForm({ item, assisted = false, locations, onCancel, onSave, 
   return <form className="itemForm" onSubmit={submit}>
     <button type="button" className="back" onClick={onCancel}><ArrowLeft/> Inventory</button>
     <header><p className="eyebrow green">{isEditing ? 'EDIT ITEM' : 'NEW INVENTORY ITEM'}</p><h1>{isEditing ? `Update ${item?.itemName}` : 'Document an item'}</h1><p className="sub">Capture enough detail to identify, value, and recover it later.</p></header>
-    {assisted && <div className="assistNotice" role="status"><Sparkles/><div><b>Photo intake prefilled this draft</b><p>No-cloud demo mode uses a fixed simulated recognition result. Review every field before saving, and treat the serial number as a candidate until you compare it with the physical label or receipt.</p></div></div>}
+    {assisted && <div className="assistNotice" role="status"><Sparkles/><div><b>Photo intake prefilled this draft</b><p>No-cloud demo mode uses a fixed simulated recognition result. Review every field before saving, and treat the serial number as a candidate until you compare it with the physical label or receipt.</p>{assistedWarnings.length>0&&<ul>{assistedWarnings.map(warning=><li key={warning}>{warning}</li>)}</ul>}</div></div>}
     {error && <div className="formError" role="alert">{error}</div>}
     <div className="formGrid">
       <section className="panel formSection"><h2>Item basics</h2><div className="fields two"><label>Item name <input required value={draft.itemName} onChange={text('itemName')} placeholder="Milwaukee M18 drill"/></label><label>Category <select value={draft.category} onChange={text('category')}><option>Tools</option><option>Electronics</option><option>Jewelry</option><option>Bicycles</option><option>Furniture</option><option>Collectibles</option><option>Other</option></select></label><label>Location <input required list="saved-locations" value={draft.location} onChange={text('location')} placeholder="Garage"/><datalist id="saved-locations">{locations.map(location=><option key={location.id} value={location.name}/>)}</datalist></label><label>Room / sub-location <input value={draft.room ?? ''} onChange={text('room')} placeholder="Tool cabinet"/></label><label>Condition <select value={draft.condition} onChange={e=>set('condition',e.target.value as ItemCondition)}><option value="new">New</option><option value="used">Used</option><option value="refurbished">Refurbished</option><option value="unknown">Unknown</option></select></label><label>Status <select value={draft.status} onChange={e=>set('status',e.target.value as ItemStatus)}><option value="normal">Normal</option><option value="stolen">Stolen</option><option value="damaged">Damaged</option><option value="destroyed">Destroyed</option><option value="missing">Missing</option><option value="recovered">Recovered</option></select></label></div><label>Description <textarea value={draft.userDescription ?? ''} onChange={text('userDescription')} placeholder="What is it, what came with it, and how is it used?"/></label></section>

@@ -5,7 +5,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "browser:cdp": "node scripts/launch-agent-browser-cdp.cjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -15,8 +16,10 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "agent-browser": "^0.31.1",
     "tsx": "latest",
     "typescript": "latest"
   },

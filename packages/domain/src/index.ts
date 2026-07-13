@@ -5,3 +5,6 @@ export * from './valuationService';
 export * from './incidentPacket';
 export * from './aiDescriptionService';
 export * from './itemIntakeService';
+export * from './itemIntakeBackendContract';
+export * from './itemReview';
+export * from './mobileBackupManifest';

@@ -4,7 +4,7 @@ PRAGMA journal_mode = WAL;
 CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS locations (id TEXT PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE, notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS inventory_items (
-  id TEXT PRIMARY KEY, item_name TEXT NOT NULL, ai_suggested_title TEXT, ai_description TEXT, user_description TEXT,
+  id TEXT PRIMARY KEY, item_name TEXT NOT NULL, ai_suggested_title TEXT, ai_description TEXT, ai_fields_reviewed_at TEXT, user_description TEXT,
   category TEXT NOT NULL, location_id TEXT REFERENCES locations(id) ON DELETE SET NULL, location_text TEXT NOT NULL,
   room TEXT, make TEXT, model TEXT, serial_number TEXT, barcode TEXT, has_owner_marking INTEGER NOT NULL DEFAULT 0,
   owner_marking TEXT, marking_type TEXT, marking_location TEXT, marking_notes TEXT, distinguishing_features TEXT,
@@ -52,4 +52,5 @@ INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (2,datetime('
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (3,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (4,datetime('now'));
 INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (5,datetime('now'));
+INSERT OR IGNORE INTO schema_migrations(version,applied_at) VALUES (6,datetime('now'));
 `;

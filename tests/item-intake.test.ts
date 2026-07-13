@@ -10,3 +10,10 @@ test('photo-first intake returns a reviewable draft and optional valuation',asyn
   assert.equal(result.fieldConfidence.serialNumber,'low');
   assert.ok(result.valuation?.comparableListings.length);
 });
+
+test('photo-first intake preserves batch location and room defaults',async()=>{
+  const result=await itemIntakeService.analyze({photoUri:'file:///demo.jpg',location:'Storage unit',room:'Shelf B'},false);
+  assert.equal(result.draft.location,'Storage unit');
+  assert.equal(result.draft.room,'Shelf B');
+  assert.equal(result.valuation,undefined);
+});

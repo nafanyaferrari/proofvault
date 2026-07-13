@@ -17,8 +17,11 @@ export const saveIncidents=(incidents:Incident[])=>localStorage.setItem('pv-inci
 export const seedLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Primary residence',createdAt:now},{id:'loc-garage',name:'Garage',createdAt:now},{id:'loc-storage',name:'Storage unit',createdAt:now}];
 export const loadLocations=():LocationRecord[]=>{try{return JSON.parse(localStorage.getItem('pv-locations')||'null')||seedLocations}catch{return seedLocations}};
 export const saveLocations=(locations:LocationRecord[])=>localStorage.setItem('pv-locations',JSON.stringify(locations));
-export const replaceLocalData=(items:InventoryItem[],incidents:Incident[],locations:LocationRecord[],tier:SubscriptionTier)=>{
- const next=[['pv-items',JSON.stringify(items)],['pv-incidents',JSON.stringify(incidents)],['pv-locations',JSON.stringify(locations)],['pv-tier',tier]] as const;
+export interface BatchDefaults { location:string; room:string; }
+export const loadBatchDefaults=():BatchDefaults=>{try{return JSON.parse(localStorage.getItem('pv-batch-defaults')||'null')||{location:'',room:''}}catch{return{location:'',room:''}}};
+export const saveBatchDefaults=(defaults:BatchDefaults)=>localStorage.setItem('pv-batch-defaults',JSON.stringify(defaults));
+export const replaceLocalData=(items:InventoryItem[],incidents:Incident[],locations:LocationRecord[],tier:SubscriptionTier,batchDefaults?:BatchDefaults)=>{
+ const next=[['pv-items',JSON.stringify(items)],['pv-incidents',JSON.stringify(incidents)],['pv-locations',JSON.stringify(locations)],['pv-tier',tier],...(batchDefaults?[['pv-batch-defaults',JSON.stringify(batchDefaults)] as const]:[])] as const;
  const previous=next.map(([key])=>({key,value:localStorage.getItem(key),hadValue:localStorage.getItem(key)!==null}));
  try{next.forEach(([key,value])=>localStorage.setItem(key,value))}
  catch(error){previous.forEach(({key,value,hadValue})=>{try{hadValue?localStorage.setItem(key,value??''):localStorage.removeItem(key)}catch{}});throw error}
