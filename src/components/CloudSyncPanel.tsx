@@ -67,7 +67,7 @@ export function CloudSyncPanel({ items, locations, tier, onRestoreCloud }: Cloud
       <p className="cloudIdentity">Signed in as <b>{status.email}</b></p>
       <div className="backupActions">
         <button disabled={busy} onClick={() => run(async () => {
-          await cloudPersistenceService.saveSnapshot({ items, incidents: loadIncidents(), locations, tier, batchDefaults: loadBatchDefaults() });
+          await cloudPersistenceService.saveSnapshot({ items, incidents: loadIncidents(false), locations, tier, batchDefaults: loadBatchDefaults() });
           setMessage(`Uploaded ${items.length} items to Supabase.`);
         })}><UploadCloud/>Upload local data</button>
         <button disabled={busy} onClick={() => run(async () => {
