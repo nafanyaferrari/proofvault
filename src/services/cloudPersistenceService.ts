@@ -29,6 +29,23 @@ function assertSupabase() {
   return supabase;
 }
 
+function postgrestInList(ids: string[]) {
+  return `(${ids.map(id => `"${id.replace(/"/g, '""')}"`).join(',')})`;
+}
+
+async function deleteRowsMissingFromSnapshot(
+  client: ReturnType<typeof assertSupabase>,
+  table: 'proofvault_inventory_items' | 'proofvault_incidents' | 'proofvault_locations',
+  userId: string,
+  ids: string[]
+) {
+  const query = client.from(table).delete().eq('user_id', userId);
+  const { error } = ids.length
+    ? await query.not('id', 'in', postgrestInList(ids))
+    : await query;
+  if (error) throw error;
+}
+
 export const cloudPersistenceService = {
   isConfigured: () => isSupabaseConfigured,
 
@@ -101,6 +118,12 @@ export const cloudPersistenceService = {
 
     const { error: locationsError } = await client.from('proofvault_locations').upsert(locationRows);
     if (locationsError) throw locationsError;
+
+    await Promise.all([
+      deleteRowsMissingFromSnapshot(client, 'proofvault_inventory_items', user.id, snapshot.items.map(item => item.id)),
+      deleteRowsMissingFromSnapshot(client, 'proofvault_incidents', user.id, snapshot.incidents.map(incident => incident.id)),
+      deleteRowsMissingFromSnapshot(client, 'proofvault_locations', user.id, snapshot.locations.map(location => location.id))
+    ]);
 
     const { error: settingsError } = await client.from('proofvault_user_settings').upsert({
       user_id: user.id,

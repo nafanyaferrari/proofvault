@@ -6,14 +6,14 @@ import { uid } from '../lib/utils';
 import { incidentCsv, incidentReport, printableIncidentHtml } from '../services/exportService';
 import { EvidenceUploader } from './EvidenceUploader';
 
-interface IncidentManagerProps { items: InventoryItem[]; tier: SubscriptionTier; }
+interface IncidentManagerProps { items: InventoryItem[]; tier: SubscriptionTier; onLocalChange?: () => void; }
 type Mode='list'|'form'|'detail';
 const lossStatuses:IncidentItem['status'][]=['stolen','damaged','destroyed','missing','recovered'];
 const emptyIncident=():Incident=>({id:uid('incident'),title:'',type:'Burglary',incidentDate:new Date().toISOString().slice(0,10),location:'',items:[],createdAt:new Date().toISOString()});
 
-export function IncidentManager({items,tier}:IncidentManagerProps){
+export function IncidentManager({items,tier,onLocalChange}:IncidentManagerProps){
  const[incidents,setIncidents]=useState<Incident[]>(loadIncidents);const[mode,setMode]=useState<Mode>('list');const[selectedId,setSelectedId]=useState<string|undefined>(incidents[0]?.id);const[draft,setDraft]=useState<Incident>(emptyIncident);const[error,setError]=useState('');const[notice,setNotice]=useState('');const[pendingDeleteId,setPendingDeleteId]=useState<string>();const selected=incidents.find(i=>i.id===selectedId);
- const persist=(next:Incident[])=>{try{saveIncidents(next);setIncidents(next);return true}catch{setError('Browser storage is full, so this incident change was not saved. Export a backup or remove large incident photos.');return false}};
+ const persist=(next:Incident[])=>{try{saveIncidents(next);setIncidents(next);onLocalChange?.();return true}catch{setError('Browser storage is full, so this incident change was not saved. Export a backup or remove large incident photos.');return false}};
  const newIncident=()=>{setDraft(emptyIncident());setError('');setMode('form')};
  const editIncident=(incident:Incident)=>{setDraft({...incident,items:incident.items.map(x=>({...x,photos:x.photos??[]}))});setError('');setMode('form')};
  const save=(event:FormEvent)=>{event.preventDefault();if(!draft.title.trim()||!draft.location.trim()){setError('Title and affected location are required.');return}if(!draft.items.length){setError('Select at least one affected item.');return}const exists=incidents.some(i=>i.id===draft.id);const next=exists?incidents.map(i=>i.id===draft.id?draft:i):[draft,...incidents];if(!persist(next))return;setSelectedId(draft.id);setMode('detail');setNotice(exists?'Incident updated.':'Incident created.')};

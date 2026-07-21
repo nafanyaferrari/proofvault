@@ -60,21 +60,21 @@ export function CloudSyncPanel({ items, locations, tier, onRestoreCloud }: Cloud
   }
 
   return <section className="panel cloudPanel">
-    <div className="backupIntro"><Cloud/><div><h2>Cloud sync</h2><p>Supabase free-tier sync for inventory, incidents, locations, and settings. Local backup still works as a safety net.</p></div></div>
+    <div className="backupIntro"><Cloud/><div><h2>Cloud sync</h2><p>Signed-in accounts autosave inventory, incidents, locations, plan status, and batch defaults. Local backup still works as a safety net.</p></div></div>
     {message && <div className="inlineNotice">{message}</div>}
     {error && <div className="formError" role="alert">{error}</div>}
     {status.authenticated ? <>
-      <p className="cloudIdentity">Signed in as <b>{status.email}</b></p>
+      <p className="cloudIdentity">Signed in as <b>{status.email}</b>. Autosave is handled in the background.</p>
       <div className="backupActions">
         <button disabled={busy} onClick={() => run(async () => {
           await cloudPersistenceService.saveSnapshot({ items, incidents: loadIncidents(false), locations, tier, batchDefaults: loadBatchDefaults() });
-          setMessage(`Uploaded ${items.length} items to Supabase.`);
-        })}><UploadCloud/>Upload local data</button>
+          setMessage(`Saved ${items.length} items to Supabase now.`);
+        })}><UploadCloud/>Save now</button>
         <button disabled={busy} onClick={() => run(async () => {
           const snapshot = await cloudPersistenceService.loadSnapshot();
           if (!onRestoreCloud(snapshot)) throw new Error('Cloud restore did not complete. Browser storage may be full.');
           setMessage(`Loaded ${snapshot.items.length} cloud items into this browser.`);
-        })}><DownloadCloud/>Load cloud data</button>
+        })}><DownloadCloud/>Reload cloud data</button>
         <button disabled={busy} onClick={() => run(async () => {
           await cloudPersistenceService.signOut();
           setMessage('Signed out of Supabase.');
