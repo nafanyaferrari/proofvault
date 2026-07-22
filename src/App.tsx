@@ -17,10 +17,13 @@ import { itemReviewBacklog, itemReviewFlags } from './services/itemReview';
 import { CloudSyncPanel } from './components/CloudSyncPanel';
 import { CloudSnapshot, CloudStatus, cloudPersistenceService } from './services/cloudPersistenceService';
 import { AccountGate } from './components/AccountGate';
+import { analysisQueueService, analysisStorageReference, AnalysisJob } from './services/analysisQueueService';
+import { evidenceStorageService, isSupabaseStorageReference } from './services/evidenceStorageService';
 
 type View = 'home' | 'inventory' | 'bulkReview' | 'detail' | 'form' | 'locations' | 'incident' | 'settings';
 const emptyAccountLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Default location for your first items',createdAt:new Date().toISOString()}];
 const maxBulkPhotosPerBatch = 12;
+let queuePresentation:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean}={jobs:[],pendingDrafts:0,resumeReview:()=>undefined,signedIn:false};
 
 export function App() {
   const [view, setView] = useState<View>('home');
@@ -39,6 +42,8 @@ export function App() {
   const [bulkDrafts, setBulkDrafts] = useState<InventoryItem[]>(loadBulkDrafts);
   const [bulkImportLoading, setBulkImportLoading] = useState(false);
   const [bulkImportMessage, setBulkImportMessage] = useState('');
+  const [queuedAnalysisCount, setQueuedAnalysisCount] = useState(0);
+  const [analysisJobs, setAnalysisJobs] = useState<AnalysisJob[]>([]);
   const [cloudStatus, setCloudStatus] = useState<CloudStatus>({ configured: cloudPersistenceService.isConfigured(), authenticated: false });
   const [localDemoAllowed, setLocalDemoAllowed] = useState(() => localStorage.getItem('pv-account-mode') === 'local');
   const [trialScope, setTrialScope] = useState('local');
@@ -49,10 +54,12 @@ export function App() {
   const [cloudSyncState, setCloudSyncState] = useState<'idle'|'loading'|'saving'|'saved'|'error'>('idle');
   const [cloudSyncMessage, setCloudSyncMessage] = useState('');
   const skipNextCloudAutosave = useRef(false);
+  const adoptingQueuedJobs = useRef(false);
   const selected = items.find(item => item.id === selectedId) ?? items[0];
   const trialPhotosRemaining = Math.max(0, trialPhotoLimit - trialPhotoUses);
   const premiumAiAssistsRemaining = Math.max(0, premiumAiAssistLimit - premiumAiUsage.uses);
   const canUseAiPhoto = tier === 'premium' ? premiumAiAssistsRemaining > 0 : trialPhotosRemaining > 0;
+  queuePresentation={jobs:analysisJobs,pendingDrafts:bulkDrafts.length,resumeReview:()=>setView('bulkReview'),signedIn:cloudStatus.authenticated};
   useEffect(()=>{setManual('');setQuickSerial('');},[selectedId]);
   const markLocalChange = () => setSyncRevision(value => value + 1);
   const hydrateCloudAccount = async () => {
@@ -191,6 +198,80 @@ export function App() {
       updatedAt: now
     }, result.valuation);
   };
+  const draftFromQueuedJob = (job: AnalysisJob) => {
+    const response = job.result as { draft?: InventoryItem; suggestedTitle?: string; suggestedDescription?: string; fields?: Record<string, { confidence?: 'low'|'medium'|'high' } | undefined>; warnings?: string[]; needsSerialVerification?: boolean; providersUsed?: string[]; valuation?: ValuationResult } | undefined;
+    if (!response?.draft) return;
+    return draftFromIntakeResult({
+      draft: response.draft as Awaited<ReturnType<typeof itemIntakeService.analyze>>['draft'],
+      suggestedTitle: response.suggestedTitle || response.draft.itemName,
+      suggestedDescription: response.suggestedDescription || response.draft.userDescription || '',
+      fieldConfidence: {
+        make: response.fields?.make?.confidence || 'low',
+        model: response.fields?.model?.confidence || 'low',
+        serialNumber: response.fields?.serialNumber?.confidence || 'low'
+      },
+      needsSerialVerification: Boolean(response.needsSerialVerification),
+      provider: response.providersUsed?.includes('mock') ? 'mock' : 'secure-backend',
+      warnings: response.warnings,
+      valuation: response.valuation
+    }, analysisStorageReference(job.storage_path));
+  };
+  useEffect(() => {
+    if (!cloudStatus.authenticated || !analysisQueueService.isAvailable()) {
+      setQueuedAnalysisCount(0);
+      setAnalysisJobs([]);
+      return;
+    }
+    let active = true;
+    const refreshQueuedJobs = async () => {
+      if (adoptingQueuedJobs.current) return;
+      try {
+        // A signed-in browser starts eligible jobs immediately. A scheduler can
+        // continue the same work after the browser closes.
+        await analysisQueueService.kick().catch(() => undefined);
+        const jobs = await analysisQueueService.loadAwaitingReview();
+        if (!active) return;
+        setAnalysisJobs(jobs);
+        setQueuedAnalysisCount(jobs.filter(job => ['queued', 'processing', 'retrying'].includes(job.status)).length);
+        const completed = jobs.filter(job => job.status === 'complete' && job.result);
+        const drafts = completed.map(draftFromQueuedJob).filter((draft): draft is InventoryItem => Boolean(draft));
+        if (!drafts.length) return;
+        adoptingQueuedJobs.current = true;
+        try {
+          const next = [...loadBulkDrafts(), ...drafts];
+          saveBulkDrafts(next);
+          await Promise.all(completed.map(job => analysisQueueService.acknowledge(job.id)));
+          if (!active) return;
+          if (tier === 'free') {
+            const uses = loadTrialPhotoUses(trialScope);
+            const nextUses = Math.min(trialPhotoLimit, uses + drafts.length);
+            saveTrialPhotoUses(trialScope, nextUses);
+            setTrialPhotoUses(nextUses);
+          } else {
+            const usage = loadPremiumAiAssistUsage(trialScope);
+            const nextUsage = { ...usage, uses: Math.min(premiumAiAssistLimit, usage.uses + drafts.length) };
+            savePremiumAiAssistUsage(trialScope, nextUsage);
+            setPremiumAiUsage(nextUsage);
+          }
+          setBulkDrafts(next);
+          setNotice(`${drafts.length} saved photo analysis${drafts.length===1?' is':'es are'} ready for review.`);
+        } finally {
+          adoptingQueuedJobs.current = false;
+        }
+      } catch {
+        // Jobs remain in Supabase and will be retried on the next app visit or by the scheduler.
+      }
+    };
+    void refreshQueuedJobs();
+    const interval = window.setInterval(() => void refreshQueuedJobs(), 12_000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [cloudStatus.authenticated, tier, trialScope]);
+  const queueDurablePhoto = async (photo: string, defaultLocation?: string, defaultRoom?: string) => {
+    const queued = await analysisQueueService.enqueue(photo, { location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
+    setQueuedAnalysisCount(count => count + 1);
+    void analysisQueueService.kick().catch(() => undefined);
+    return queued;
+  };
   const recordTrialPhotoUse = (nextUses: number) => {
     try {
       saveTrialPhotoUses(trialScope, nextUses);
@@ -220,6 +301,11 @@ export function App() {
     setIntakeLoading(true);
     try {
       const photo = await optimizedPhotoDataUrl(file);
+      if (cloudStatus.authenticated && analysisQueueService.isAvailable()) {
+        await queueDurablePhoto(photo, defaultLocation, defaultRoom);
+        setNotice('Photo saved safely. ProofVault is analyzing it in the background; you can keep using the app or close it.');
+        return;
+      }
       const result = await itemIntakeService.analyze({ photoUri: photo, location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
       const draft = draftFromIntakeResult(result, photo);
       if (tier === 'free' && !recordTrialPhotoUse(trialPhotoUses + 1)) return;
@@ -254,6 +340,7 @@ export function App() {
     const drafts: InventoryItem[] = [];
     let unreadablePhotos = 0;
     let unavailableAnalyses = 0;
+    let durableQueued = 0;
     let storageStopped = false;
     let trialUsesDuringImport = trialPhotoUses;
     let premiumUsesDuringImport = premiumAiUsage.uses;
@@ -263,6 +350,11 @@ export function App() {
         setBulkImportMessage(`Analyzing photo ${index + 1} of ${selectedFiles.length}...`);
         try {
           const photo = await optimizedPhotoDataUrl(file);
+          if (cloudStatus.authenticated && analysisQueueService.isAvailable()) {
+            await queueDurablePhoto(photo, defaultLocation, defaultRoom);
+            durableQueued += 1;
+            continue;
+          }
           let draft: InventoryItem;
           let analyzed = false;
           try {
@@ -332,6 +424,8 @@ export function App() {
           storageStopped ? 'browser storage is full, so the remaining photos were not added' : ''
         ].filter(Boolean);
         setNotice(`Saved ${drafts.length} draft${drafts.length===1?'':'s'} for review.${extra.length ? ` ${extra.join('; ')}.` : ''}`);
+      } else if (durableQueued) {
+        setNotice(`${durableQueued} photo${durableQueued===1?' was':'s were'} saved safely and queued for background analysis. You can leave this page; completed drafts will appear for review automatically.`);
       } else {
         setNotice(storageStopped ? 'Browser storage is full, so no photo drafts were saved. Clear space or use a smaller batch.' : 'No photo drafts could be created. Try clearer image files or a smaller batch.');
       }
@@ -396,20 +490,36 @@ export function App() {
   return <div className="shell">
     <aside><div className="brand"><ShieldCheck/><b>ProofVault</b></div><p className="eyebrow">PROPERTY EVIDENCE</p>{nav('home','Overview',<Home/>)}{nav('inventory','Inventory',<Package/>)}{nav('locations','Locations',<MapPin/>)}{nav('incident','Incident',<FileText/>)}<div className="spacer"/>{nav('settings','Settings',<Settings/>)}<div className="privacy"><LockKeyhole/><div><b>{cloudStatus.authenticated?'Cloud account':'Local demo'}</b><small>{cloudStatus.authenticated?cloudStatus.email:'Data stays in this browser'}</small></div></div></aside>
     <main>{notice&&<button className="toast" onClick={()=>setNotice('')} aria-label="Dismiss notification"><Check/>{notice}</button>}
-      <AccountStatusBanner status={cloudStatus} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} syncState={cloudSyncState} syncMessage={cloudSyncMessage}/>
-      {view==='home'&&<HomeView items={items} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} canUseAiPhoto={canUseAiPhoto} open={open} add={startNew} startBulk={bulkPhotoIntake} bulkLoading={bulkImportLoading} bulkMessage={bulkImportMessage} pendingBulkDrafts={bulkDrafts.length} resumeBulk={()=>setView('bulkReview')} upgrade={()=>setTier('premium')} review={()=>setView('inventory')} incident={()=>setView('incident')}/>} {view==='inventory'&&<InventoryView items={items} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} canUseAiPhoto={canUseAiPhoto} upgrade={()=>setTier('premium')} localChange={markLocalChange} open={open} edit={startEdit} add={startNew} bulkIntake={bulkPhotoIntake} bulkLoading={bulkImportLoading} bulkMessage={bulkImportMessage} pendingBulkDrafts={bulkDrafts.length} resumeBulk={()=>setView('bulkReview')} quickIntake={quickPhotoIntake} intakeLoading={intakeLoading}/>} {view==='bulkReview'&&<BulkReviewView drafts={bulkDrafts} update={updateBulkDraft} save={id=>finishBulkDraft(id,'save')} skip={id=>finishBulkDraft(id,'skip')} saveAll={saveAllBulkDrafts} back={()=>setView('inventory')}/>} {view==='detail'&&selected&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} archive={()=>toggleArchive(selected)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} quickSerial={quickSerial} setQuickSerial={setQuickSerial} saveQuickSerial={saveQuickSerial} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm locations={locations} tier={tier} onUpgrade={()=>setTier('premium')} item={editingId ? items.find(item=>item.id===editingId) : assistedDraft} assisted={Boolean(assistedDraft)} assistedWarnings={assistedWarnings} onCancel={()=>{setAssistedDraft(undefined);setAssistedWarnings([]);setView(editingId?'detail':'inventory')}} onSave={saveItem} onSaveAndAddAnother={next=>saveItem(next,true)}/>} {view==='locations'&&<LocationsManager locations={locations} items={items} onChange={updateLocations}/>} {view==='incident'&&<IncidentManager items={items} tier={tier} onLocalChange={markLocalChange}/>} {view==='settings'&&<SettingsView items={items} locations={locations} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} status={cloudStatus} syncState={cloudSyncState} syncMessage={cloudSyncMessage} setTier={setTier} restore={restoreBackup} restoreCloud={restoreCloudSnapshot} resetDemoData={resetDemoData}/>}
+      <AccountStatusBanner status={cloudStatus} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} queuedAnalysisCount={queuedAnalysisCount} syncState={cloudSyncState} syncMessage={cloudSyncMessage}/>
+      {view==='home'&&<HomeView items={items} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} canUseAiPhoto={canUseAiPhoto} open={open} add={startNew} startBulk={bulkPhotoIntake} bulkLoading={bulkImportLoading} bulkMessage={bulkImportMessage} pendingBulkDrafts={bulkDrafts.length} resumeBulk={()=>setView('bulkReview')} upgrade={()=>setTier('premium')} review={()=>setView('inventory')} incident={()=>setView('incident')}/>} {view==='inventory'&&<InventoryView items={items} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} canUseAiPhoto={canUseAiPhoto} upgrade={()=>setTier('premium')} localChange={markLocalChange} open={open} edit={startEdit} add={startNew} bulkIntake={bulkPhotoIntake} bulkLoading={bulkImportLoading} bulkMessage={bulkImportMessage} pendingBulkDrafts={bulkDrafts.length} resumeBulk={()=>setView('bulkReview')} quickIntake={quickPhotoIntake} intakeLoading={intakeLoading} analysisJobs={analysisJobs} signedIn={cloudStatus.authenticated}/>} {view==='bulkReview'&&<BulkReviewView drafts={bulkDrafts} update={updateBulkDraft} save={id=>finishBulkDraft(id,'save')} skip={id=>finishBulkDraft(id,'skip')} saveAll={saveAllBulkDrafts} back={()=>setView('inventory')}/>} {view==='detail'&&selected&&<DetailView item={selected} tier={tier} loading={loading} back={()=>setView('inventory')} edit={()=>startEdit(selected.id)} archive={()=>toggleArchive(selected)} find={find} choose={choose} manual={manual} setManual={setManual} saveManual={saveManual} quickSerial={quickSerial} setQuickSerial={setQuickSerial} saveQuickSerial={saveQuickSerial} upgrade={()=>setTier('premium')}/>} {view==='form'&&<ItemForm locations={locations} tier={tier} onUpgrade={()=>setTier('premium')} item={editingId ? items.find(item=>item.id===editingId) : assistedDraft} assisted={Boolean(assistedDraft)} assistedWarnings={assistedWarnings} onCancel={()=>{setAssistedDraft(undefined);setAssistedWarnings([]);setView(editingId?'detail':'inventory')}} onSave={saveItem} onSaveAndAddAnother={next=>saveItem(next,true)}/>} {view==='locations'&&<LocationsManager locations={locations} items={items} onChange={updateLocations}/>} {view==='incident'&&<IncidentManager items={items} tier={tier} onLocalChange={markLocalChange}/>} {view==='settings'&&<SettingsView items={items} locations={locations} tier={tier} trialPhotosRemaining={trialPhotosRemaining} premiumAiAssistsRemaining={premiumAiAssistsRemaining} status={cloudStatus} syncState={cloudSyncState} syncMessage={cloudSyncMessage} setTier={setTier} restore={restoreBackup} restoreCloud={restoreCloudSnapshot} resetDemoData={resetDemoData}/>} 
     </main>
   </div>;
 }
 
 function PageHead({kicker,title,sub}:{kicker:string;title:string;sub:string}){return <header><p className="eyebrow green">{kicker}</p><h1>{title}</h1><p className="sub">{sub}</p></header>}
-function AccountStatusBanner({status,tier,trialPhotosRemaining,premiumAiAssistsRemaining,syncState,syncMessage}:{status:CloudStatus;tier:SubscriptionTier;trialPhotosRemaining:number;premiumAiAssistsRemaining:number;syncState:'idle'|'loading'|'saving'|'saved'|'error';syncMessage:string}){
+function AccountStatusBanner({status,tier,trialPhotosRemaining,premiumAiAssistsRemaining,queuedAnalysisCount,syncState,syncMessage}:{status:CloudStatus;tier:SubscriptionTier;trialPhotosRemaining:number;premiumAiAssistsRemaining:number;queuedAnalysisCount:number;syncState:'idle'|'loading'|'saving'|'saved'|'error';syncMessage:string}){
   const signedIn=status.authenticated;
   const syncLabel=signedIn?(syncMessage||'Autosave ready'):'Local demo only';
   const accessLabel=tier==='premium'?`Premium demo - ${premiumAiAssistsRemaining} AI assists left`:trialPhotosRemaining?`Free demo - ${trialPhotosRemaining} AI photo trial${trialPhotosRemaining===1?'':'s'} left`:'Free demo - AI photo trial used';
-  return <section className={`accountStatusBanner ${signedIn?'cloud':'local'} ${syncState}`} aria-label="Account and sync status"><div><Cloud/><span>{signedIn?'Signed-in account':'Local demo'}</span></div><div><ShieldCheck/><span>{accessLabel}</span></div><small>{syncLabel}</small></section>;
+  return <section className={`accountStatusBanner ${signedIn?'cloud':'local'} ${syncState}`} aria-label="Account and sync status"><div><Cloud/><span>{signedIn?'Signed-in account':'Local demo'}</span></div><div><ShieldCheck/><span>{accessLabel}</span></div>{queuedAnalysisCount>0&&<div><Sparkles/><span>{queuedAnalysisCount} photo{queuedAnalysisCount===1?'':'s'} analyzing safely</span></div>}<small>{syncLabel}</small></section>;
 }
 function ItemIcon({category}:{category:string}){return <div className="itemicon">{category==='Jewelry'?<Tag/>:<Package/>}</div>}
+function StoredPhoto({value,alt}:{value:string;alt:string}){
+  const [src,setSrc]=useState(value);
+  useEffect(()=>{let active=true;evidenceStorageService.resolveDisplayUrl(value).then(url=>{if(active)setSrc(url||'')}).catch(()=>{if(active)setSrc('')});return()=>{active=false}},[value]);
+  return src.startsWith('data:image')||src.startsWith('http')?<img src={src} alt={alt}/>:<div className="photoPlaceholder"><Camera/>Saved photo</div>;
+}
+function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn}:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean}){
+  if (!signedIn) return null;
+  const visible=jobs.filter(job=>job.status!=='reviewed'&&job.status!=='cancelled');
+  const analyzing=visible.filter(job=>['queued','processing','retrying'].includes(job.status));
+  const ready=visible.filter(job=>job.status==='complete');
+  const needsHelp=visible.filter(job=>job.status==='failed');
+  if (!visible.length && !pendingDrafts) return null;
+  const statusCopy=(job:AnalysisJob)=>job.status==='queued'?'Saved — waiting to start':job.status==='processing'?'Analyzing photo':job.status==='retrying'?'Temporarily busy — retrying automatically':job.status==='complete'?'Ready for your quick review':'Needs attention';
+  const context=(job:AnalysisJob)=>[job.item_context?.location,job.item_context?.room].filter(Boolean).join(' · ') || 'Photo saved to your account';
+  return <section className="panel photoAnalysisQueue" aria-label="Photo analysis queue"><div className="sectionTitle"><div><p className="eyebrow green">PHOTO ANALYSIS QUEUE</p><h2>{analyzing.length?`${analyzing.length} photo${analyzing.length===1?'':'s'} being analyzed`:'Your photo analysis activity'}</h2></div><span className="queueLive"><Sparkles/>Updates automatically</span></div><p className="queueIntro">Every photo is saved to your account first. You can leave the app while analysis continues.</p>{(ready.length||pendingDrafts>0)&&<div className="queueReady"><div><b>{pendingDrafts||ready.length} draft{(pendingDrafts||ready.length)===1?'':'s'} ready to review</b><small>Confirm the name, make, model, serial number, and value before saving.</small></div><button className="primary" onClick={resumeReview}>Review now</button></div>}{visible.map(job=><div className={`analysisJob ${job.status}`} key={job.id}><div className="analysisJobPhoto"><StoredPhoto value={analysisStorageReference(job.storage_path)} alt="Saved photo waiting for analysis"/></div><div><b>{statusCopy(job)}</b><small>{context(job)}</small><small>Added {dateTime(job.created_at)}{job.attempts>1?` · Attempt ${job.attempts}`:''}</small>{job.status==='failed'&&job.last_error&&<span className="analysisError">{job.last_error}</span>}</div><span className={`jobStatus ${job.status}`}>{job.status==='processing'?'Working':job.status==='retrying'?'Retrying':job.status==='complete'?'Ready':job.status==='failed'?'Needs help':'Queued'}</span></div>)}{needsHelp.length>0&&<p className="queueHelp">These photos remain saved. Open ProofVault again later to retry them automatically; no re-upload is needed.</p>}</section>;
+}
 function Score({item}:{item:InventoryItem}){const s=completenessScore(item);return <div className="score"><span style={{width:`${s.score}%`}}/><small>{s.score}%</small></div>}
 function ItemRow({item,open}:{item:InventoryItem;open:(id:string)=>void}){return <button className="itemrow" onClick={()=>open(item.id)}><ItemIcon category={item.category}/><div><b>{item.itemName}</b><small>{item.location} - {item.serialNumber||item.ownerMarking||'Needs identifier'}</small></div><Score item={item}/><ChevronRight/></button>}
 
@@ -423,16 +533,21 @@ function HomeView({items,tier,trialPhotosRemaining,premiumAiAssistsRemaining,can
   const photoHelp=isPremium?`Your annual Premium plan includes ${premiumAiAssistLimit} AI assists; ${premiumAiAssistsRemaining} remain. Choose one clear overview photo per item. Each assist drafts item names, make, model, serial-number candidates, and replacement estimates for quick review.`:canUseAiPhoto?`Try Before You Buy includes ${trialPhotosRemaining} free AI photo analysis${trialPhotosRemaining===1?'':'es'} on this browser. Each creates a description, make/model/SN candidate, and approximate replacement estimate for review.`:'Your three Try Before You Buy AI photo analyses are used. Add items manually, or enable Premium demo access for more photo analysis.';
   return <><PageHead kicker="START HERE" title="Document your home without the paperwork." sub="Take photos first. ProofVault helps turn them into useful records you can review and save."/>{pendingBulkDrafts>0&&<section className="panel resumeBatch"><div><p className="eyebrow green">SAVED PHOTO BATCH</p><h2>{pendingBulkDrafts} draft{pendingBulkDrafts===1?'':'s'} ready to review</h2><p>Your batch is saved in this browser. Finish the key fields now or save the drafts to inventory for later.</p></div><button className="primary" onClick={resumeBulk}>Resume review</button></section>}<section className="panel startPanel"><div><p className="eyebrow green">{isPremium?'FASTEST PATH':'TRY BEFORE YOU BUY'}</p><h2>Walk around and add many photos</h2><p>{photoHelp}</p><small>{isPremium?'Premium includes one household owner, one invited household member, and three active devices when billing is enabled.':'Prototype trial only: the count is stored in this browser, not billing or a permanent account entitlement.'}</small>{bulkMessage&&<small className="bulkProgress">{bulkMessage}</small>}</div><button className="primary heroAction" disabled={bulkLoading} onClick={()=>canUseAiPhoto?bulkInputRef.current?.click():upgrade()}><Camera/>{photoActionLabel}</button><input ref={bulkInputRef} className="visuallyHiddenInput" type="file" accept="image/*" multiple aria-label="Choose item photos for AI analysis" onChange={event=>{const files=Array.from(event.currentTarget.files??[]);event.currentTarget.value='';void startBulk(files)}}/></section><div className="quickActions"><button onClick={add}><Plus/><b>Add one item</b><span>Manual entry with photos, make, model, SN, and value.</span></button><button onClick={review}><TriangleAlert/><b>Review records</b><span>{reviewTotal?`${reviewTotal} quick check${reviewTotal===1?'':'s'} waiting`:'Nothing urgent right now'}</span></button><button onClick={incident}><FileText/><b>Create incident packet</b><span>Build a police or insurance export from saved items.</span></button></div><div className="stats simplified"><div><Package/><span><b>{active.length}</b>Items saved</span></div><div><ShieldCheck/><span><b>{active.filter(i=>i.make||i.model||i.serialNumber).length}</b>With make, model, or SN</span></div><div><Sparkles/><span><b>{active.filter(i=>i.estimatedReplacementValueSelected||i.userEnteredValue).length}</b>With value</span></div></div>{weak.length>0&&<section className="panel guidancePanel"><div className="sectionTitle"><div><p className="eyebrow">BEST NEXT FIXES</p><h2>Make these records stronger</h2><small>Make, model, and serial number matter most for value and recovery.</small></div><span>{weak.length} priority</span></div>{weak.map(entry=><button key={entry.item.id} onClick={()=>open(entry.item.id)}><TriangleAlert/><div><b>{entry.item.itemName}</b><small>{entry.feedback}</small></div><strong>{entry.score}%</strong><ChevronRight/></button>)}</section>}<section className="panel"><div className="sectionTitle"><div><p className="eyebrow">RECENT INVENTORY</p><h2>Recently saved</h2></div><span className="tier">{isPremium?`${premiumAiAssistsRemaining} Premium assists left`:`${trialPhotosRemaining} AI trial${trialPhotosRemaining===1?'':'s'} left`}</span></div>{active.length?active.slice(0,4).map(item=><ItemRow key={item.id} item={item} open={open}/>):<div className="empty"><Package/><h3>No items yet</h3><p>Start with a batch of photos or add one item manually.</p></div>}</section></>;
 }
-function ReviewQueue({items,open,edit}:{items:InventoryItem[];open:(id:string)=>void;edit:(id:string)=>void}){const{records,total,issueSummary}=itemReviewBacklog(items,4);const first=records[0];if(!records.length)return <section className="panel reviewQueue clear"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>All quick checks are clear</h2><small>{items.length ? 'No active item currently needs AI review, make/model, serial verification, value, photo, receipt, or appraisal follow-up.' : 'Add items with fast photo intake, then review tasks will appear here.'}</small></div><span className="ok"><Check/>Clear</span></div></section>;return <section className="panel reviewQueue"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>Quick checks before you move on</h2><small>Sorted so make/model, likely AI-prefill, and serial checks float to the top.</small></div><div className="queueActions"><span>{records.length} of {total} shown</span>{first&&<button onClick={()=>edit(first.item.id)}>Review next</button>}</div></div><div className="reviewChips" aria-label="Review backlog by issue type">{issueSummary.map(issue=><span key={issue.id}>{issue.label}: {issue.count}</span>)}</div>{records.map(record=><button key={record.item.id} onClick={()=>open(record.item.id)}><TriangleAlert/><div><b>{record.item.itemName}</b><small>{record.flags[0].label} - {record.flags[0].detail}</small><span className="reviewReasons">{record.flags.map(flag=>flag.label).join(' - ')}</span></div><ChevronRight/></button>)}</section>}
+function ReviewQueue({items,open,edit}:{items:InventoryItem[];open:(id:string)=>void;edit:(id:string)=>void}){
+  const {records,total,issueSummary}=itemReviewBacklog(items,4);
+  const first=records[0];
+  const reviewPanel=!records.length ? <section className="panel reviewQueue clear"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>All quick checks are clear</h2><small>{items.length ? 'No active item currently needs AI review, make/model, serial verification, value, photo, receipt, or appraisal follow-up.' : 'Add items with fast photo intake, then review tasks will appear here.'}</small></div><span className="ok"><Check/>Clear</span></div></section> : <section className="panel reviewQueue"><div className="sectionTitle"><div><p className="eyebrow">BULK REVIEW QUEUE</p><h2>Quick checks before you move on</h2><small>Sorted so make/model, likely AI-prefill, and serial checks float to the top.</small></div><div className="queueActions"><span>{records.length} of {total} shown</span>{first&&<button onClick={()=>edit(first.item.id)}>Review next</button>}</div></div><div className="reviewChips" aria-label="Review backlog by issue type">{issueSummary.map(issue=><span key={issue.id}>{issue.label}: {issue.count}</span>)}</div>{records.map(record=><button key={record.item.id} onClick={()=>open(record.item.id)}><TriangleAlert/><div><b>{record.item.itemName}</b><small>{record.flags[0].label} - {record.flags[0].detail}</small><span className="reviewReasons">{record.flags.map(flag=>flag.label).join(' - ')}</span></div><ChevronRight/></button>)}</section>;
+  return <><PhotoAnalysisQueue {...queuePresentation}/>{reviewPanel}</>;
+}
 function BulkReviewView({drafts,update,save,skip,saveAll,back}:{drafts:InventoryItem[];update:(id:string,patch:Partial<InventoryItem>)=>void;save:(id:string)=>void;skip:(id:string)=>void;saveAll:()=>void;back:()=>void}){
   const current=drafts[0];
   if(!current)return <section className="panel empty"><Check/><h2>Bulk review complete</h2><p>All photo drafts have been handled.</p><button className="primary" onClick={back}>Back to inventory</button></section>;
-  const photo=current.photos.find(value=>value.startsWith('data:image'))??current.photos[0];
+  const photo=current.photos.find(value=>value.startsWith('data:image')||isSupabaseStorageReference(value))??current.photos[0];
   const setText=(key:keyof InventoryItem)=>(event:ChangeEvent<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>)=>update(current.id,{[key]:event.target.value} as Partial<InventoryItem>);
   const setValue=(event:ChangeEvent<HTMLInputElement>)=>update(current.id,{userEnteredValue:event.target.value?Number(event.target.value):undefined});
   return <><div className="detailToolbar"><button className="back" onClick={back}><ArrowLeft/>Inventory</button><div className="bulkCount">{drafts.length} draft{drafts.length===1?'':'s'} waiting</div></div><section className="panel bulkReviewHero"><div><p className="eyebrow green">QUICK REVIEW</p><h1>Check the fields that matter most.</h1><p>Make and model drive replacement value. Serial number helps identify lost or stolen property. This saved batch survives refreshes, so you can stop and return later.</p></div><button className="primary" onClick={saveAll}><Check/>Save all drafts for later</button></section><section className="panel bulkDraftCard">{photo&&photo.startsWith('data:image')?<img src={photo} alt={`${current.itemName || 'Draft item'} photo`} />:<div className="photoPlaceholder"><Camera/>Photo draft</div>}<div className="bulkDraftFields"><div className="reviewStep"><span>1</span><b>Name the item</b></div><label>Item name<input value={current.itemName} onChange={setText('itemName')} placeholder="Cordless drill, TV, bicycle..."/></label><div className="fields three priorityFields"><label>Make<input value={current.make??''} onChange={setText('make')} placeholder="Milwaukee"/></label><label>Model<input value={current.model??''} onChange={setText('model')} placeholder="M18 2801-20"/></label><label>Serial number (SN)<input value={current.serialNumber??''} onChange={setText('serialNumber')} placeholder="Verify from label"/></label></div><div className="fields two"><label>Location<input value={current.location} onChange={setText('location')}/></label><label>Your value (optional)<input type="number" min="0" step="0.01" value={current.userEnteredValue??''} onChange={setValue} placeholder="Enter your own replacement value"/></label></div>{current.estimatedReplacementValueSelected&&<p className="estimateHint">AI estimate: {money(current.estimatedReplacementValueSelected)} - {current.valuationConfidence || 'unknown'} confidence</p>}<label>Quick notes<textarea value={current.notes??''} onChange={setText('notes')} placeholder="Accessories, condition, visible details..."/></label><div className="bulkReviewActions"><button className="primary" onClick={()=>save(current.id)}><Check/>Save this item</button><button onClick={()=>skip(current.id)}>Skip photo</button></div><p className="helper">One uploaded photo creates one item draft. For multiple angles of the same item, save this record first, then attach more photos from the item screen. AI-filled make, model, and SN should be verified against the item, label, receipt, or packaging.</p></div></section></>;
 }
-function InventoryView({items,tier,trialPhotosRemaining,premiumAiAssistsRemaining,canUseAiPhoto,upgrade,localChange,open,edit,add,bulkIntake,bulkLoading,bulkMessage,pendingBulkDrafts,resumeBulk,quickIntake,intakeLoading}:{items:InventoryItem[];tier:SubscriptionTier;trialPhotosRemaining:number;premiumAiAssistsRemaining:number;canUseAiPhoto:boolean;upgrade:()=>void;localChange:()=>void;open:(id:string)=>void;edit:(id:string)=>void;add:()=>void;bulkIntake:(files:File[],defaultLocation?:string,defaultRoom?:string)=>void;bulkLoading:boolean;bulkMessage:string;pendingBulkDrafts:number;resumeBulk:()=>void;quickIntake:(file:File,defaultLocation?:string,defaultRoom?:string)=>void;intakeLoading:boolean}){
+function InventoryView({items,tier,trialPhotosRemaining,premiumAiAssistsRemaining,canUseAiPhoto,upgrade,localChange,open,edit,add,bulkIntake,bulkLoading,bulkMessage,pendingBulkDrafts,resumeBulk,quickIntake,intakeLoading,analysisJobs,signedIn}:{items:InventoryItem[];tier:SubscriptionTier;trialPhotosRemaining:number;premiumAiAssistsRemaining:number;canUseAiPhoto:boolean;upgrade:()=>void;localChange:()=>void;open:(id:string)=>void;edit:(id:string)=>void;add:()=>void;bulkIntake:(files:File[],defaultLocation?:string,defaultRoom?:string)=>void;bulkLoading:boolean;bulkMessage:string;pendingBulkDrafts:number;resumeBulk:()=>void;quickIntake:(file:File,defaultLocation?:string,defaultRoom?:string)=>void;intakeLoading:boolean;analysisJobs:AnalysisJob[];signedIn:boolean}){
   const[query,setQuery]=useState('');
   const[showArchived,setShowArchived]=useState(false);
   const initialBatch=loadBatchDefaults();

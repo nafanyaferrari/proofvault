@@ -1,1 +1,13 @@
-{"rewrites":[{"source":"/(.*)","destination":"/index.html"}]}
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/analyze-item.ts": { "maxDuration": 60 },
+    "api/process-analysis-jobs.ts": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/process-analysis-jobs", "schedule": "17 2 * * *" }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
