@@ -31,6 +31,9 @@ export const itemIntakeService = {
       return await secureBackendAnalyzer.analyze(input, includeValuation);
     } catch (error) {
       if((error as Error & { code?:string }).code?.startsWith('AI_USAGE_'))throw error;
+      // A live deployment must never represent a failed AI request as a photo analysis.
+      // The local mock remains useful only while developing without the server endpoint.
+      if (!import.meta.env.DEV) throw error;
       const fallback = await mockItemIntakeService.analyze(input, includeValuation);
       return {
         ...fallback,

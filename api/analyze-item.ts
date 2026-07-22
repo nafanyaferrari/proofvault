@@ -260,6 +260,16 @@ function parseGeminiText(payload: any) {
     .join('\n') ?? '';
 }
 
+function pause(milliseconds: number) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
+function providerUnavailableError() {
+  const error = new Error('Photo analysis is temporarily busy. Please try again in a moment; no AI assist was used.') as Error & { code?: string };
+  error.code = 'AI_PROVIDER_UNAVAILABLE';
+  return error;
+}
+
 async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiItemJson> {
   const apiKey = process.env.GEMINI_API_KEY;
   const model = process.env.GEMINI_VISION_MODEL || 'gemini-3.5-flash';
@@ -269,38 +279,59 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
   if (!image) throw new Error('At least one photo is required.');
   const inline = dataUrlParts(image);
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
-    headers: {
-      'x-goog-api-key': apiKey,
-      'content-type': 'application/json'
-    },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          {
-            text: 'Analyze this household inventory item photo for an insurance/property documentation app. Return JSON only. Use empty strings for uncertain fields. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning.'
-          },
-          {
-            inline_data: {
-              mime_type: inline.mimeType,
-              data: inline.data
-            }
+  const requestBody = JSON.stringify({
+    contents: [{
+      parts: [
+        {
+          text: 'Analyze this household inventory item photo for an insurance/property documentation app. Return JSON only. Use empty strings for uncertain fields. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning.'
+        },
+        {
+          inline_data: {
+            mime_type: inline.mimeType,
+            data: inline.data
           }
-        ]
-      }],
-      generationConfig: {
-        response_mime_type: 'application/json',
-        response_schema: itemJsonSchema()
-      }
-    })
+        }
+      ]
+    }],
+    generationConfig: {
+      response_mime_type: 'application/json',
+      response_schema: itemJsonSchema()
+    }
   });
-  if (!response.ok) throw new Error(`Gemini photo analysis failed: ${response.status}`);
-  const text = parseGeminiText(await response.json());
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start < 0 || end < start) throw new Error('Gemini response was not valid JSON.');
-  return JSON.parse(text.slice(start, end + 1));
+
+  // Gemini documents 429 and 5xx responses as transient. Retry a small number
+  // of times with backoff so a temporary capacity spike does not create a mock record.
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
+        body: requestBody
+      });
+      if (response.ok) {
+        const text = parseGeminiText(await response.json());
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start < 0 || end < start) throw new Error('Gemini response was not valid JSON.');
+        return JSON.parse(text.slice(start, end + 1));
+      }
+
+      const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+      if (!retryable) {
+        const error = new Error(`Gemini photo analysis failed: ${response.status}`) as Error & { code?: string };
+        error.code = 'AI_PROVIDER_REQUEST_FAILED';
+        throw error;
+      }
+      console.warn('[analyze-item] transient Gemini response', { status: response.status, attempt });
+    } catch (error) {
+      if ((error as Error & { code?: string }).code === 'AI_PROVIDER_UNAVAILABLE' || (error as Error & { code?: string }).code === 'AI_PROVIDER_REQUEST_FAILED') throw error;
+      if (attempt === 3) throw providerUnavailableError();
+      console.warn('[analyze-item] transient Gemini request failure', { attempt, message: error instanceof Error ? error.message : 'Unknown error' });
+    }
+    if (attempt < 3) await pause(500 * 2 ** (attempt - 1));
+  }
+
+  throw providerUnavailableError();
 }
 
 async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiItemJson> {

@@ -253,6 +253,7 @@ export function App() {
     setBulkImportMessage(`Preparing ${selectedFiles.length} item photo${selectedFiles.length===1?'':'s'}...`);
     const drafts: InventoryItem[] = [];
     let unreadablePhotos = 0;
+    let unavailableAnalyses = 0;
     let storageStopped = false;
     let trialUsesDuringImport = trialPhotoUses;
     let premiumUsesDuringImport = premiumAiUsage.uses;
@@ -263,10 +264,13 @@ export function App() {
         try {
           const photo = await optimizedPhotoDataUrl(file);
           let draft: InventoryItem;
+          let analyzed = false;
           try {
             const result = await itemIntakeService.analyze({ photoUri: photo, location: defaultLocation || locations[0]?.name || 'Home', room: defaultRoom }, true);
             draft = draftFromIntakeResult(result, photo);
-          } catch {
+            analyzed = true;
+          } catch (error) {
+            unavailableAnalyses += 1;
             const now = new Date().toISOString();
             draft = {
               id: uid('item'),
@@ -284,7 +288,7 @@ export function App() {
               damagePhotos: [],
               otherFiles: [],
               comparableListings: [],
-              notes: 'AI could not analyze this photo. Review and fill in make, model, serial number, and value before relying on this record.',
+              notes: 'AI could not analyze this photo. No AI assist was used. Review and fill in make, model, serial number, and value before relying on this record.',
               status: 'normal',
               createdAt: now,
               updatedAt: now
@@ -297,14 +301,14 @@ export function App() {
             storageStopped = true;
             break;
           }
-          if (tier === 'free') {
+          if (analyzed && tier === 'free') {
             trialUsesDuringImport += 1;
             if (!recordTrialPhotoUse(trialUsesDuringImport)) {
               storageStopped = true;
               break;
             }
           }
-          if (tier === 'premium') {
+          if (analyzed && tier === 'premium') {
             premiumUsesDuringImport += 1;
             if (!recordPremiumAiAssist(premiumUsesDuringImport)) {
               storageStopped = true;
@@ -321,6 +325,7 @@ export function App() {
         setView('bulkReview');
         const extra = [
           unreadablePhotos ? `${unreadablePhotos} photo${unreadablePhotos===1?' was':'s were'} unreadable and skipped` : '',
+          unavailableAnalyses ? `${unavailableAnalyses} photo${unavailableAnalyses===1?' analysis was':' analyses were'} unavailable and saved for manual review without using an AI assist` : '',
           leftForNextBatch ? `${leftForNextBatch} photo${leftForNextBatch===1?'':'s'} left for the next batch` : '',
           tier === 'free' ? `${Math.max(0, trialPhotoLimit - trialUsesDuringImport)} Try Before You Buy photo analysis${trialPhotoLimit - trialUsesDuringImport===1?'':'es'} remain` : '',
           tier === 'premium' ? `${Math.max(0,premiumAiAssistLimit-premiumUsesDuringImport)} annual Premium AI assist${premiumAiAssistLimit-premiumUsesDuringImport===1?'':'s'} remain` : '',
