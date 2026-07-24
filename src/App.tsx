@@ -23,7 +23,7 @@ import { evidenceStorageService, isSupabaseStorageReference } from './services/e
 type View = 'home' | 'inventory' | 'bulkReview' | 'detail' | 'form' | 'locations' | 'incident' | 'settings';
 const emptyAccountLocations:LocationRecord[]=[{id:'loc-home',name:'Home',notes:'Default location for your first items',createdAt:new Date().toISOString()}];
 const maxBulkPhotosPerBatch = 12;
-let queuePresentation:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;canUseAiPhoto?:boolean;startItemPhotos?:(files:File[])=>void;retryFailed?:(jobId:string)=>void}={jobs:[],pendingDrafts:0,resumeReview:()=>undefined,signedIn:false};
+let queuePresentation:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;canUseAiPhoto?:boolean;startItemPhotos?:(files:File[])=>void;retryFailed?:(jobId:string)=>void;retryingJobId?:string|null}={jobs:[],pendingDrafts:0,resumeReview:()=>undefined,signedIn:false};
 
 export function App() {
   const [view, setView] = useState<View>('home');
@@ -44,6 +44,7 @@ export function App() {
   const [bulkImportMessage, setBulkImportMessage] = useState('');
   const [queuedAnalysisCount, setQueuedAnalysisCount] = useState(0);
   const [analysisJobs, setAnalysisJobs] = useState<AnalysisJob[]>([]);
+  const [retryingAnalysisJobId, setRetryingAnalysisJobId] = useState<string | null>(null);
   const [cloudStatus, setCloudStatus] = useState<CloudStatus>({ configured: cloudPersistenceService.isConfigured(), authenticated: false });
   const [localDemoAllowed, setLocalDemoAllowed] = useState(() => localStorage.getItem('pv-account-mode') === 'local');
   const [trialScope, setTrialScope] = useState('local');
@@ -281,14 +282,21 @@ export function App() {
     return queued;
   };
   const retryFailedAnalysis = async (jobId: string) => {
+    setRetryingAnalysisJobId(jobId);
     try {
       await analysisQueueService.retry(jobId);
+      const jobs = await analysisQueueService.loadAwaitingReview();
+      setAnalysisJobs(jobs);
+      setQueuedAnalysisCount(jobs.filter(job => ['queued', 'processing', 'retrying'].includes(job.status)).length);
       setNotice('Saved photo analysis restarted. It will update here when the draft is ready.');
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'The saved photo could not be retried yet.');
+    } finally {
+      setRetryingAnalysisJobId(null);
     }
   };
   queuePresentation.retryFailed=retryFailedAnalysis;
+  queuePresentation.retryingJobId=retryingAnalysisJobId;
   const recordTrialPhotoUse = (nextUses: number) => {
     try {
       saveTrialPhotoUses(trialScope, nextUses);
@@ -541,7 +549,7 @@ function ItemPhotoAssist({canUseAiPhoto,startItemPhotos}:{canUseAiPhoto?:boolean
   if (!startItemPhotos) return null;
   return <section className="panel itemPhotoAssist"><div><p className="eyebrow green">ONE ITEM, BETTER RESULTS</p><h2>Add an overview plus close-ups</h2><p>Choose up to four photos of the same item. Start with a clear overall photo, then add close-ups of the brand, model, serial number, barcode, receipt, or distinguishing marks.</p><ul><li>Keep the item centered and well lit.</li><li>Make and model labels should fill the frame when possible.</li><li>Serial numbers are usually on a separate close-up; ProofVault will flag them for verification.</li><li>If the overview contains several separate items, ProofVault creates review cards so you choose which ones to save.</li></ul></div><div className="itemPhotoAction"><button className="primary" type="button" disabled={!canUseAiPhoto} onClick={()=>inputRef.current?.click()}><Camera/>{canUseAiPhoto?'Add photos of one item':'Enable photo analysis'}</button><small>One overview + up to three close-ups</small></div><input ref={inputRef} className="visuallyHiddenInput" type="file" aria-label="Choose overview and close-up photos of one item" accept="image/*" capture="environment" multiple disabled={!canUseAiPhoto} onChange={event=>{const files=Array.from(event.currentTarget.files??[]);event.currentTarget.value='';if(files.length)startItemPhotos(files);}}/></section>;
 }
-function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn,retryFailed}:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;retryFailed?:(jobId:string)=>void}){
+function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn,retryFailed,retryingJobId}:{jobs:AnalysisJob[];pendingDrafts:number;resumeReview:()=>void;signedIn:boolean;retryFailed?:(jobId:string)=>void;retryingJobId?:string|null}){
   if (!signedIn) return null;
   const visible=jobs.filter(job=>job.status!=='reviewed'&&job.status!=='cancelled');
   const analyzing=visible.filter(job=>['queued','processing','retrying'].includes(job.status));
@@ -550,7 +558,7 @@ function PhotoAnalysisQueue({jobs,pendingDrafts,resumeReview,signedIn,retryFaile
   if (!visible.length && !pendingDrafts) return null;
   const statusCopy=(job:AnalysisJob)=>job.status==='queued'?'Saved — waiting to start':job.status==='processing'?'Analyzing photo':job.status==='retrying'?'Temporarily busy — retrying automatically':job.status==='complete'?'Ready for your quick review':'Needs attention';
   const context=(job:AnalysisJob)=>[job.item_context?.location,job.item_context?.room].filter(Boolean).join(' · ') || 'Photo saved to your account';
-  return <section className="panel photoAnalysisQueue" aria-label="Photo analysis queue"><div className="sectionTitle"><div><p className="eyebrow green">PHOTO ANALYSIS QUEUE</p><h2>{analyzing.length?`${analyzing.length} photo${analyzing.length===1?'':'s'} being analyzed`:'Your photo analysis activity'}</h2></div><span className="queueLive"><Sparkles/>Updates automatically</span></div><p className="queueIntro">Every photo is saved to your account first. You can leave the app while analysis continues.</p>{(ready.length||pendingDrafts>0)&&<div className="queueReady"><div><b>{pendingDrafts||ready.length} draft{(pendingDrafts||ready.length)===1?'':'s'} ready to review</b><small>Confirm the name, make, model, serial number, and value before saving.</small></div><button className="primary" onClick={resumeReview}>Review now</button></div>}{visible.map(job=><div className={`analysisJob ${job.status}`} key={job.id}><div className="analysisJobPhoto"><StoredPhoto value={analysisStorageReference(job.storage_path)} alt="Saved photo waiting for analysis"/></div><div><b>{statusCopy(job)}</b><small>{context(job)}</small><small>Added {dateTime(job.created_at)}{job.attempts>1?` · Attempt ${job.attempts}`:''}</small>{job.status==='failed'&&job.last_error&&<span className="analysisError">{job.last_error}</span>}</div><div className="analysisJobAction"><span className={`jobStatus ${job.status}`}>{job.status==='processing'?'Working':job.status==='retrying'?'Retrying':job.status==='complete'?'Ready':job.status==='failed'?'Needs help':'Queued'}</span>{job.status==='failed'&&retryFailed&&<button onClick={()=>retryFailed(job.id)}>Retry analysis</button>}</div></div>)}{needsHelp.length>0&&<p className="queueHelp">This photo remains saved. Fix the message above, then choose Retry analysis; no re-upload is needed.</p>}</section>;
+  return <section className="panel photoAnalysisQueue" aria-label="Photo analysis queue"><div className="sectionTitle"><div><p className="eyebrow green">PHOTO ANALYSIS QUEUE</p><h2>{analyzing.length?`${analyzing.length} photo${analyzing.length===1?'':'s'} being analyzed`:'Your photo analysis activity'}</h2></div><span className="queueLive"><Sparkles/>Updates automatically</span></div><p className="queueIntro">Every photo is saved to your account first. You can leave the app while analysis continues.</p>{(ready.length||pendingDrafts>0)&&<div className="queueReady"><div><b>{pendingDrafts||ready.length} draft{(pendingDrafts||ready.length)===1?'':'s'} ready to review</b><small>Confirm the name, make, model, serial number, and value before saving.</small></div><button className="primary" onClick={resumeReview}>Review now</button></div>}{visible.map(job=>{const retrying=retryingJobId===job.id;return <div className={`analysisJob ${job.status}`} key={job.id}><div className="analysisJobPhoto"><StoredPhoto value={analysisStorageReference(job.storage_path)} alt="Saved photo waiting for analysis"/></div><div><b>{retrying?'Restarting analysis…':statusCopy(job)}</b><small>{context(job)}</small><small>Added {dateTime(job.created_at)}{job.attempts>1?` · Attempt ${job.attempts}`:''}</small>{job.status==='failed'&&job.last_error&&<span className="analysisError">{job.last_error}</span>}</div><div className="analysisJobAction"><span className={`jobStatus ${job.status}`}>{retrying?'Restarting':job.status==='processing'?'Working':job.status==='retrying'?'Retrying':job.status==='complete'?'Ready':job.status==='failed'?'Needs help':'Queued'}</span>{job.status==='failed'&&retryFailed&&<button disabled={retrying} onClick={()=>retryFailed(job.id)}>{retrying?'Restarting…':'Retry analysis'}</button>}</div></div>;})}{needsHelp.length>0&&<p className="queueHelp">This photo remains saved. Fix the message above, then choose Retry analysis; no re-upload is needed.</p>}</section>;
 }
 function Score({item}:{item:InventoryItem}){const s=completenessScore(item);return <div className="score"><span style={{width:`${s.score}%`}}/><small>{s.score}%</small></div>}
 function ItemRow({item,open}:{item:InventoryItem;open:(id:string)=>void}){return <button className="itemrow" onClick={()=>open(item.id)}><ItemIcon category={item.category}/><div><b>{item.itemName}</b><small>{item.location} - {item.serialNumber||item.ownerMarking||'Needs identifier'}</small></div><Score item={item}/><ChevronRight/></button>}
