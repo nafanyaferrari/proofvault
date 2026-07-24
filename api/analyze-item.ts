@@ -315,6 +315,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
   // Gemini documents 429 and 5xx responses as transient. Retry the preferred
   // model once, then use a stable multimodal fallback before reporting failure.
   let modelNotFound = false;
+  let nonModelFailure = false;
   for (const activeModel of models) {
     for (let attempt = 1; attempt <= 2; attempt += 1) {
       try {
@@ -336,7 +337,10 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
         // retrying the same model only wastes time and leaves photos stuck.
         if (response.status === 404) {
           modelNotFound = true;
-          console.warn('[analyze-item] Gemini model was not found; trying fallback', { model: activeModel });
+          console.warn('[analyze-item] Gemini model was not found; trying fallback', {
+            model: activeModel,
+            response: (await response.text()).slice(0, 500)
+          });
           break;
         }
         const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
@@ -345,9 +349,11 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
           error.code = 'AI_PROVIDER_REQUEST_FAILED';
           throw error;
         }
+        nonModelFailure = true;
         console.warn('[analyze-item] transient Gemini response', { model: activeModel, status: response.status, attempt });
       } catch (error) {
         if ((error as Error & { code?: string }).code === 'AI_PROVIDER_REQUEST_FAILED') throw error;
+        nonModelFailure = true;
         console.warn('[analyze-item] transient Gemini request failure', { model: activeModel, attempt, message: error instanceof Error ? error.message : 'Unknown error' });
       }
       if (attempt < 2) await pause(500);
@@ -355,7 +361,10 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
     console.warn('[analyze-item] Gemini model exhausted; trying fallback', { model: activeModel });
   }
 
-  if (modelNotFound) throw providerConfigurationError('Gemini could not find a configured vision model. The saved photo was not analyzed; update GEMINI_VISION_MODEL and retry it.');
+  // Only call this a model configuration problem when every attempted model
+  // actually returned 404. A 503/429/network failure after a 404 must remain
+  // retryable rather than being mislabeled as a configuration issue.
+  if (modelNotFound && !nonModelFailure) throw providerConfigurationError('Gemini could not find a configured vision model. The saved photo was not analyzed; update GEMINI_VISION_MODEL and retry it.');
   throw providerUnavailableError();
 }
 
