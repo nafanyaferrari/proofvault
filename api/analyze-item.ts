@@ -293,7 +293,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
   // configurable in Vercel, but a bad or retired model must not strand a
   // customer's saved photo in the retry queue.
   const model = process.env.GEMINI_VISION_MODEL || 'gemini-3.5-flash';
-  const models = [...new Set([model, process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.5-flash'])];
+  const models = [...new Set([model, process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite'])];
   if (!apiKey) throw new Error('Gemini is not configured.');
 
   if (!request.photos.length) throw new Error('At least one photo is required.');
