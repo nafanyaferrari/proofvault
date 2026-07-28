@@ -27,7 +27,7 @@ export interface ItemReviewBacklog {
 
 const reviewIssueLabels: Record<ItemReviewFlag['id'], string> = {
   'verify-serial': 'Serial',
-  'review-ai-prefill': 'AI review',
+  'review-ai-prefill': 'Suggested details',
   'add-make-model': 'Make & model',
   'add-value': 'Value',
   'add-photo': 'Photo',
@@ -52,7 +52,7 @@ export function itemReviewFlags(item: InventoryItem): ItemReviewFlag[] {
   if (!item.aiFieldsReviewedAt && (item.aiDescription || item.aiSuggestedTitle || notes.includes('simulated photo intake'))) {
     flags.push({
       id: 'review-ai-prefill',
-      label: 'Review AI-prefilled details',
+      label: 'Review photo-prefilled details',
       detail: 'Confirm make, model, description, condition, and accessories before relying on this record.',
       priority: 'medium'
     });

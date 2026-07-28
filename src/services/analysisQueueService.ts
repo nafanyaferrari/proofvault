@@ -12,6 +12,7 @@ export interface AnalysisJob {
   result?: unknown;
   last_error?: string | null;
   created_at: string;
+  updated_at?: string;
   completed_at?: string | null;
   item_context?: { location?: string; room?: string } | null;
 }
@@ -94,6 +95,22 @@ export const analysisQueueService = {
       .select('*')
       .in('status', ['queued', 'processing', 'retrying', 'complete', 'failed'])
       .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as AnalysisJob[];
+  },
+
+  // Completed results remain in Supabase after a browser refresh. This lets
+  // the app restore a recently prepared draft if the browser lost its local
+  // review queue before the person had a chance to save it.
+  async loadRecentlyAcknowledged(since: string) {
+    const client = requireClient();
+    const { data, error } = await client
+      .from('proofvault_analysis_jobs')
+      .select('*')
+      .eq('status', 'reviewed')
+      .gte('updated_at', since)
+      .order('updated_at', { ascending: false })
+      .limit(20);
     if (error) throw error;
     return (data ?? []) as AnalysisJob[];
   },

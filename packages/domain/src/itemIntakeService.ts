@@ -17,7 +17,7 @@ export interface ItemIntakeAnalyzer { analyze(input:ItemIntakeInput, includeValu
 
 // Production photo recognition and OCR must run through a secure backend. Provider/API keys
 // must never be shipped in the web or mobile client. This interface keeps that future adapter
-// replaceable and prevents the intake UI from depending on a particular AI vendor.
+// replaceable and prevents the intake UI from depending on a particular analysis vendor.
 export const itemIntakeService:ItemIntakeAnalyzer={
   async analyze(input,includeValuation){
     await new Promise(resolve=>setTimeout(resolve,650));

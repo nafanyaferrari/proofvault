@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { ArrowDown, ArrowRight, Camera, Check, Cloud, FileText, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import { cloudPersistenceService, CloudStatus } from '../services/cloudPersistenceService';
 import { PricingPage } from './PricingPage';
+import { WaitlistForm } from './WaitlistForm';
 
 interface AccountGateProps {
   status: CloudStatus;
   onContinueLocal: () => void;
   onStatusChange: (status: CloudStatus) => void;
+  waitlistOnly?: boolean;
 }
 
-export function AccountGate({ status, onContinueLocal, onStatusChange }: AccountGateProps) {
+export function AccountGate({ status, onContinueLocal, onStatusChange, waitlistOnly = false }: AccountGateProps) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -35,7 +37,7 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
   return <main className="accountPage">
     <header className="landingNav">
       <div className="accountBrand"><ShieldCheck /><b>ProofVault</b></div>
-      <div className="landingNavActions"><a href="/pricing">Pricing</a><a href="#account">Sign in or create account</a></div>
+      <div className="landingNavActions"><a href="/pricing">Pricing</a><a href="#early-access">Join early access</a>{!waitlistOnly&&<a href="#account">Sign in</a>}</div>
     </header>
 
     <section className="accountHero landingHero">
@@ -43,16 +45,19 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
       <h1>Could you prove what your home is worth if you had to do it today?</h1>
       <p className="sub">After a theft, fire, or loss, people are often asked to remember makes, models, serial numbers, receipts, and values when the evidence is hardest to find. ProofVault makes the first step simple: walk around and take photos.</p>
       <div className="landingHeroActions">
-        <a className="primary landingPrimary" href="#why">See why ProofVault exists <ArrowDown /></a>
+        <a className="primary landingPrimary" href="#early-access">Join the early-access list <ArrowRight /></a>
+        <a className="landingTextLink" href="#why">See why ProofVault exists <ArrowDown /></a>
         <a className="landingTextLink" href="#demo">Jump to the no-sign-up demo <ArrowRight /></a>
         <a className="landingTextLink" href="/pricing">View Founding Household pricing <ArrowRight /></a>
       </div>
       <div className="accountHighlights" aria-label="ProofVault benefits">
         <span><Camera />Start with photos, not forms</span>
-        <span><Sparkles />AI helps find make, model, and SN</span>
+        <span><Sparkles />Photo analysis helps find make, model, and SN</span>
         <span><FileText />Keep a usable incident packet</span>
       </div>
     </section>
+
+    <WaitlistForm />
 
     <section className="whyPitch" id="why">
       <div className="whyIntro"><p className="eyebrow green">THE REAL PROBLEM</p><h2>A vague list is not the same as proof.</h2><p>"A TV," "some tools," or "jewelry" is difficult to replace, identify, or explain later. What matters is the information people usually do not have time to gather after a loss.</p></div>
@@ -61,11 +66,11 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
         <article><b>2</b><h3>Evidence gets scattered</h3><p>Photos, receipts, and notes live in different places - or disappear with the item.</p></article>
         <article><b>3</b><h3>Claims need specifics</h3><p>Clear item records make it easier to describe what was lost and what replacement may cost.</p></article>
       </div>
-      <div className="whyReveal"><p className="eyebrow green">THE RELIEF</p><h2>Picture opening one clear record instead of rebuilding your memory.</h2><p>ProofVault turns a photo walk-around into reviewable item details, approximate replacement estimates, and an incident-ready packet. You remain in control: AI suggestions are clearly marked for review.</p></div>
+      <div className="whyReveal"><p className="eyebrow green">THE RELIEF</p><h2>Picture opening one clear record instead of rebuilding your memory.</h2><p>ProofVault turns a photo walk-around into reviewable item details, approximate replacement estimates, and an incident-ready packet. You remain in control: suggested details are clearly marked for review.</p></div>
     </section>
 
     <section className="demoSpotlight" id="demo">
-      <div><p className="eyebrow green">SEE THE ACTUAL FLOW</p><h2>Try ProofVault before you share an email.</h2><p>Use sample property, take the same photo-first path, and see make/model/SN review, approximate values, and an incident packet for yourself.</p><ul><li><Check />No account or payment needed</li><li><Check />Three free AI photo analyses in this browser</li><li><Check />Demo data stays separate from personal accounts</li></ul></div>
+      <div><p className="eyebrow green">SEE THE ACTUAL FLOW</p><h2>Try ProofVault before you share an email.</h2><p>Use sample property, take the same photo-first path, and see make/model/SN review, approximate values, and an incident packet for yourself.</p><ul><li><Check />No account or payment needed</li><li><Check />Three free photo analyses in this browser</li><li><Check />Demo data stays separate from personal accounts</li></ul></div>
       <div className="demoSpotlightAction"><Camera /><b>Ready to see it work?</b><button className="primary" onClick={onContinueLocal}>Open the interactive demo <ArrowRight /></button><small>About two minutes. You can reset the sample data any time.</small></div>
     </section>
 
@@ -75,9 +80,9 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
       <div><b>3</b><span>Save records or create an incident packet</span></div>
     </section>
 
-    <section className="panel accountCard" id="account">
-      <p className="eyebrow green">WHEN YOU ARE READY</p><h2>Create your private ProofVault account</h2>
-      <p>Use an account when you are ready to begin your own inventory. Your signed-in records stay separate from the interactive demo and sync to your private account.</p>
+    {!waitlistOnly&&<section className="panel accountCard" id="account">
+      <p className="eyebrow green">READY TO START NOW?</p><h2>Create or sign in to your private account</h2>
+      <p>If you are ready to begin your own inventory now, use an account. Your signed-in records stay separate from the interactive demo and sync privately.</p>
       {status.configured ? <>
         {message && <div className="inlineNotice">{message}</div>}
         {error && <div className="formError" role="alert">{error}</div>}
@@ -90,6 +95,6 @@ export function AccountGate({ status, onContinueLocal, onStatusChange }: Account
         <div className="formError" role="status">Supabase URL and anon key are missing.</div>
       </>}
       <small className="localDemoNote"><LockKeyhole /> The interactive demo needs no account. Personal account data stays separate.</small>
-    </section>
+    </section>}
   </main>;
 }

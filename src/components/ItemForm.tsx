@@ -69,7 +69,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
 
   const suggest = async () => {
     if (!isPremium) {
-      setError('AI description assistance is a Premium feature. Free users can still write their own description.');
+      setError('Description assistance is a Premium feature. Free users can still write their own description.');
       return;
     }
     setAiLoading(true);
@@ -130,12 +130,12 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
   return <form className="itemForm redesignedItemForm" onSubmit={submit}>
     <button type="button" className="back" onClick={onCancel}><ArrowLeft /> Inventory</button>
     <header className="formHero">
-      <p className="eyebrow green">{isEditing ? 'EDIT ITEM' : assisted ? 'REVIEW AI DRAFT' : 'NEW INVENTORY ITEM'}</p>
+      <p className="eyebrow green">{isEditing ? 'EDIT ITEM' : assisted ? 'REVIEW PHOTO DRAFT' : 'NEW INVENTORY ITEM'}</p>
       <h1>{isEditing ? `Update ${item?.itemName}` : 'Save the useful facts first.'}</h1>
       <p className="sub">Make, model, Serial Number (SN), photos, and value are the high-impact details. Everything else can wait.</p>
     </header>
 
-    {assisted && <div className="assistNotice" role="status"><Sparkles /><div><b>Photo intake prefilled this draft</b><p>Review make, model, and SN before relying on the record. AI can help, but the label, receipt, or packaging is the final source of truth.</p>{assistedWarnings.length > 0 && <ul>{assistedWarnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}</div></div>}
+    {assisted && <div className="assistNotice" role="status"><Sparkles /><div><b>Photo intake prefilled this draft</b><p>Review make, model, and SN before relying on the record. The label, receipt, or packaging is the final source of truth.</p>{assistedWarnings.length > 0 && <ul>{assistedWarnings.map(warning => <li key={warning}>{warning}</li>)}</ul>}</div></div>}
     {error && <div className="formError" role="alert">{error}</div>}
 
     <section className="panel formSection essentialPanel">
@@ -179,12 +179,12 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
     <section className="panel formSection aiSection">
       <div className="aiHeading">
         <div>
-          <p className="eyebrow green">{isPremium ? 'PREMIUM DEMO AI ASSIST' : 'PREMIUM DEMO FEATURE'}</p>
-          <h2>Use AI to clean up the record</h2>
+          <p className="eyebrow green">{isPremium ? 'PREMIUM PHOTO ASSIST' : 'PREMIUM DEMO FEATURE'}</p>
+          <h2>Use photo analysis to clean up the record</h2>
         </div>
         <button type="button" onClick={isPremium ? suggest : onUpgrade} disabled={aiLoading}>{isPremium ? <Sparkles /> : <LockKeyhole />}{aiLoading ? 'Reviewing...' : isPremium ? 'Generate description' : 'Enable Premium demo features'}</button>
       </div>
-      <p className="helper">{isPremium ? 'AI can draft a plain-language description from photos and visible details. Please verify any identifier it suggests.' : 'Premium demo access includes AI descriptions, make/model help, SN recognition from photos, and automatic value comparison. It is a prototype test setting, not a paid subscription.'}</p>
+      <p className="helper">{isPremium ? 'Photo analysis can draft a plain-language description from visible details. Please verify any identifier it suggests.' : 'Premium demo access includes photo descriptions, make/model help, SN recognition from photos, and automatic value comparison. It is a prototype test setting, not a paid subscription.'}</p>
       {aiResult && <div className="aiResult"><b>{aiResult.suggestedTitle}</b><p>{aiResult.suggestedDescription}</p>{aiResult.visibleIdentifiers.map(identifier => <small key={identifier}>{identifier}</small>)}{aiResult.missingRecommendedFields.length > 0 && <small>Recommended: add {aiResult.missingRecommendedFields.join(', ')}.</small>}<div><button type="button" onClick={() => { set('itemName', aiResult.suggestedTitle); set('userDescription', aiResult.suggestedDescription); }}>Use title & description</button></div></div>}
     </section>
 

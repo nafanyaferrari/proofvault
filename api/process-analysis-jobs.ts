@@ -123,7 +123,7 @@ async function processJob(req: RequestLike, config: ReturnType<typeof serverConf
         await updateJob(config.url, config.serviceRoleKey, job.id, {
           status: 'retrying',
           next_attempt_at: new Date(Date.now() + delaySeconds * 1000).toISOString(),
-          last_error: payload.error || 'AI provider temporarily unavailable.'
+          last_error: payload.error || 'Photo analysis service temporarily unavailable.'
         });
         return 'retrying';
       }

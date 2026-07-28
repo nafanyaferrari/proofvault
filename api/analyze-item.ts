@@ -84,7 +84,7 @@ async function verifiedUser(req: VercelRequest): Promise<VerifiedUser> {
   const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const anonKey=process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
   const authorization=headerValue(req,'authorization');
-  if(!url||!anonKey||!authorization)throw new Error('Sign in is required for AI analysis.');
+  if(!url||!anonKey||!authorization)throw new Error('Sign in is required for photo analysis.');
   const response=await fetch(`${url}/auth/v1/user`,{headers:{apikey:anonKey,authorization}});
   if(!response.ok)throw new Error('Your sign-in session could not be verified.');
   return response.json();
@@ -95,16 +95,16 @@ async function consumeAiAssist(req: VercelRequest) {
   if(process.env.AI_USAGE_ENFORCEMENT!=='true')return;
   const url=process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if(!url||!serviceRoleKey)throw new Error('AI usage enforcement is not configured on the server.');
+  if(!url||!serviceRoleKey)throw new Error('Photo analysis access is not configured on the server.');
   const user=await verifiedUser(req);
   const response=await fetch(`${url}/rest/v1/rpc/proofvault_consume_ai_assist`,{
     method:'POST',
     headers:{apikey:serviceRoleKey,authorization:`Bearer ${serviceRoleKey}`,'content-type':'application/json'},
     body:JSON.stringify({target_user_id:user.id,requested_feature:'photo_intake',requested_provider:process.env.GEMINI_API_KEY?'gemini-vision':process.env.OPENAI_API_KEY?'openai-vision':'mock'})
   });
-  if(!response.ok)throw new Error('AI usage could not be checked.');
+  if(!response.ok)throw new Error('Photo analysis access could not be checked.');
   const result=await response.json() as Array<{allowed:boolean;remaining:number}>;
-  if(!result[0]?.allowed){const error=new Error('Your AI assist allowance is used. Add more assists or renew your plan.');(error as Error & { code?:string }).code='AI_USAGE_LIMIT';throw error;}
+  if(!result[0]?.allowed){const error=new Error('Your photo analysis allowance is used. Add more analyses or renew your plan.');(error as Error & { code?:string }).code='AI_USAGE_LIMIT';throw error;}
 }
 
 const categories = ['Tools','Electronics','Jewelry','Bicycles','Furniture','Collectibles','Other'];
@@ -171,7 +171,7 @@ function baseDraft(request: SecureItemIntakeRequest, ai: AiItemJson = {}): Inven
   const make = cleanText(ai.make);
   const model = cleanText(ai.model);
   const itemName = cleanText(ai.itemName) || [make, model].filter(Boolean).join(' ') || 'Photo-documented item';
-  const suggestedDescription = cleanText(ai.suggestedDescription, 'AI photo analysis created this draft. Verify all fields before relying on them for insurance, police, or recovery use.');
+  const suggestedDescription = cleanText(ai.suggestedDescription, 'Photo analysis created this draft. Verify all fields before relying on them for insurance, police, or recovery use.');
   return {
     itemName,
     category: category(ai.category),
@@ -188,7 +188,7 @@ function baseDraft(request: SecureItemIntakeRequest, ai: AiItemJson = {}): Inven
     distinguishingFeatures: cleanText(ai.distinguishingFeatures),
     purchaseDate: '',
     userDescription: suggestedDescription,
-    notes: 'Created by secure backend photo analysis. User must verify all AI-filled identifiers.',
+    notes: 'Created by secure backend photo analysis. User must verify all suggested identifiers.',
     condition: condition(ai.condition),
     status: 'normal'
   };
@@ -216,7 +216,7 @@ function mockResponse(request: SecureItemIntakeRequest): SecureItemIntakeRespons
       category: { value: draft.category, confidence: 'high', source: 'mock' },
       condition: { value: draft.condition, confidence: 'medium', source: 'mock' }
     },
-    warnings: ['AI provider is not configured yet; backend returned a mock photo-analysis result.', SERIAL_VERIFICATION_WARNING],
+    warnings: ['The live photo analysis provider is not configured yet; ProofVault returned a sample result.', SERIAL_VERIFICATION_WARNING],
     needsSerialVerification: true,
     providersUsed: ['mock'],
     candidates: [draft]
@@ -231,7 +231,7 @@ function parseOpenAiText(payload: any) {
 
 function dataUrlParts(uri: string) {
   const match = uri.match(/^data:(.*?);base64,(.*)$/);
-  if (!match) throw new Error('Gemini test adapter currently expects an inline data URL image.');
+  if (!match) throw new Error('The photo analysis test adapter expects an inline image.');
   return { mimeType: match[1] || 'image/jpeg', data: match[2] };
 }
 
@@ -276,7 +276,7 @@ function pause(milliseconds: number) {
 }
 
 function providerUnavailableError() {
-  const error = new Error('Photo analysis is temporarily busy. Please try again in a moment; no AI assist was used.') as Error & { code?: string };
+  const error = new Error('Photo analysis is temporarily busy. Please try again in a moment; no photo analysis credit was used.') as Error & { code?: string };
   error.code = 'AI_PROVIDER_UNAVAILABLE';
   return error;
 }
@@ -294,7 +294,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
   // customer's saved photo in the retry queue.
   const model = process.env.GEMINI_VISION_MODEL || 'gemini-3.5-flash';
   const models = [...new Set([model, process.env.GEMINI_FALLBACK_MODEL || 'gemini-3.1-flash-lite'])];
-  if (!apiKey) throw new Error('Gemini is not configured.');
+  if (!apiKey) throw new Error('Photo analysis is not configured.');
 
   if (!request.photos.length) throw new Error('At least one photo is required.');
   const photoParts = request.photos.map((photo, index) => {
@@ -328,7 +328,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
           const text = parseGeminiText(await response.json());
           const start = text.indexOf('{');
           const end = text.lastIndexOf('}');
-          if (start < 0 || end < start) throw new Error('Gemini response was not valid JSON.');
+          if (start < 0 || end < start) throw new Error('Photo analysis returned an unusable result.');
           return JSON.parse(text.slice(start, end + 1));
         }
 
@@ -345,7 +345,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
         }
         const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
         if (!retryable) {
-          const error = new Error(`Gemini photo analysis failed: ${response.status}`) as Error & { code?: string };
+          const error = new Error(`Photo analysis failed: ${response.status}`) as Error & { code?: string };
           error.code = 'AI_PROVIDER_REQUEST_FAILED';
           throw error;
         }
@@ -364,14 +364,14 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
   // Only call this a model configuration problem when every attempted model
   // actually returned 404. A 503/429/network failure after a 404 must remain
   // retryable rather than being mislabeled as a configuration issue.
-  if (modelNotFound && !nonModelFailure) throw providerConfigurationError('Gemini could not find a configured vision model. The saved photo was not analyzed; update GEMINI_VISION_MODEL and retry it.');
+  if (modelNotFound && !nonModelFailure) throw providerConfigurationError('Photo analysis service needs attention. The saved photo was not analyzed; check the service setup and retry it.');
   throw providerUnavailableError();
 }
 
 async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiItemJson> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_VISION_MODEL;
-  if (!apiKey || !model) throw new Error('OpenAI is not configured.');
+  if (!apiKey || !model) throw new Error('Photo analysis is not configured.');
 
   if (!request.photos.length) throw new Error('At least one photo is required.');
 
@@ -389,11 +389,11 @@ async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiIt
       }]
     })
   });
-  if (!response.ok) throw new Error(`OpenAI photo analysis failed: ${response.status}`);
+  if (!response.ok) throw new Error(`Photo analysis failed: ${response.status}`);
   const text = parseOpenAiText(await response.json());
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
-  if (start < 0 || end < start) throw new Error('AI response was not valid JSON.');
+  if (start < 0 || end < start) throw new Error('Photo analysis returned an unusable result.');
   return JSON.parse(text.slice(start, end + 1));
 }
 
