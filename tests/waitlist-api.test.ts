@@ -31,12 +31,13 @@ test('waitlist endpoint stores a validated interest record without exposing serv
 
   try {
     const { res, result } = createResponse();
-    await handler({ method: 'POST', body: { firstName: '  Nate ', email: 'NATE@EXAMPLE.COM', updatesOptIn: true } }, res);
+    await handler({ method: 'POST', body: { firstName: '  Nate ', email: 'NATE@EXAMPLE.COM', updatesOptIn: true, setupInterest: true } }, res);
     assert.equal(result().statusCode, 201);
     assert.match(requestUrl, /proofvault_waitlist\?on_conflict=email/);
     assert.equal(requestBody.first_name, 'Nate');
     assert.equal(requestBody.email, 'nate@example.com');
     assert.equal(requestBody.updates_opt_in, true);
+    assert.equal(requestBody.setup_interest, true);
     assert.equal(requestBody.launch_notification_consent, true);
   } finally {
     globalThis.fetch = originalFetch;

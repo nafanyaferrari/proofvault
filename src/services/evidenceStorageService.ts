@@ -1,5 +1,6 @@
 import { uid } from '../lib/utils';
 import { isSupabaseConfigured, supabase } from './supabaseClient';
+import { cloudPersistenceService } from './cloudPersistenceService';
 
 export type EvidenceKind = 'item' | 'serial' | 'marking' | 'receipt' | 'appraisal' | 'warranty' | 'damage' | 'other' | 'incident';
 
@@ -59,7 +60,8 @@ export const evidenceStorageService = {
     if (!user) throw new Error('Sign in before uploading files to Supabase Storage.');
 
     const bucket = storageBucket(kind, file.type);
-    const path = `${user.id}/${itemId}/${kind}/${Date.now()}-${uid('file')}.${extensionFor(file)}`;
+    const ownerId = await cloudPersistenceService.householdOwnerId();
+    const path = `${ownerId}/${itemId}/${kind}/${Date.now()}-${uid('file')}.${extensionFor(file)}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file, {
       cacheControl: '3600',
       upsert: false,
@@ -78,7 +80,8 @@ export const evidenceStorageService = {
     const blob = dataUrlToBlob(dataUrl);
     const bucket = storageBucket(kind, blob.type);
     const extension = blob.type.includes('pdf') ? 'pdf' : blob.type.includes('png') ? 'png' : blob.type.includes('webp') ? 'webp' : 'jpg';
-    const path = `${user.id}/${itemId}/${kind}/${Date.now()}-${uid('file')}.${extension}`;
+    const ownerId = await cloudPersistenceService.householdOwnerId();
+    const path = `${ownerId}/${itemId}/${kind}/${Date.now()}-${uid('file')}.${extension}`;
     const { error } = await supabase.storage.from(bucket).upload(path, blob, {
       cacheControl: '3600',
       upsert: false,
@@ -98,4 +101,3 @@ export const evidenceStorageService = {
     return data.signedUrl;
   }
 };
-

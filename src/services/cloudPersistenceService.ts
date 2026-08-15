@@ -25,6 +25,14 @@ async function requireUser() {
   return data.user;
 }
 
+async function householdOwnerId() {
+  const client = assertSupabase();
+  const user = await requireUser();
+  const { data, error } = await client.rpc('proofvault_household_owner_id');
+  if (error) throw error;
+  return typeof data === 'string' && data ? data : user.id;
+}
+
 function assertSupabase() {
   if (!supabase) throw new Error('Supabase is not configured.');
   return supabase;
@@ -89,26 +97,31 @@ export const cloudPersistenceService = {
     if (error) throw error;
   },
 
+  async householdOwnerId() {
+    return householdOwnerId();
+  },
+
   async saveSnapshot(snapshot: CloudSnapshot) {
     const client = assertSupabase();
-    const user = await requireUser();
+    await requireUser();
+    const ownerUserId = await householdOwnerId();
     const now = new Date().toISOString();
 
     const itemRows = snapshot.items.map(item => ({
       id: item.id,
-      user_id: user.id,
+      user_id: ownerUserId,
       item,
       updated_at: item.updatedAt ?? now
     }));
     const incidentRows = snapshot.incidents.map(incident => ({
       id: incident.id,
-      user_id: user.id,
+      user_id: ownerUserId,
       incident,
       updated_at: incident.createdAt ?? now
     }));
     const locationRows = snapshot.locations.map(location => ({
       id: location.id,
-      user_id: user.id,
+      user_id: ownerUserId,
       location,
       updated_at: now
     }));
@@ -123,13 +136,13 @@ export const cloudPersistenceService = {
     if (locationsError) throw locationsError;
 
     await Promise.all([
-      deleteRowsMissingFromSnapshot(client, 'proofvault_inventory_items', user.id, snapshot.items.map(item => item.id)),
-      deleteRowsMissingFromSnapshot(client, 'proofvault_incidents', user.id, snapshot.incidents.map(incident => incident.id)),
-      deleteRowsMissingFromSnapshot(client, 'proofvault_locations', user.id, snapshot.locations.map(location => location.id))
+      deleteRowsMissingFromSnapshot(client, 'proofvault_inventory_items', ownerUserId, snapshot.items.map(item => item.id)),
+      deleteRowsMissingFromSnapshot(client, 'proofvault_incidents', ownerUserId, snapshot.incidents.map(incident => incident.id)),
+      deleteRowsMissingFromSnapshot(client, 'proofvault_locations', ownerUserId, snapshot.locations.map(location => location.id))
     ]);
 
     const { error: settingsError } = await client.from('proofvault_user_settings').upsert({
-      user_id: user.id,
+      user_id: ownerUserId,
       subscription_tier: snapshot.tier,
       batch_defaults: snapshot.batchDefaults ?? { location: '', room: '' },
       updated_at: now

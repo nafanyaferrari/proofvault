@@ -6,6 +6,7 @@ export function WaitlistForm() {
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [updatesOptIn, setUpdatesOptIn] = useState(false);
+  const [setupInterest, setSetupInterest] = useState(false);
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -15,7 +16,7 @@ export function WaitlistForm() {
     setBusy(true);
     setError('');
     try {
-      await joinWaitlist({ firstName: firstName.trim(), email: email.trim(), updatesOptIn });
+      await joinWaitlist({ firstName: firstName.trim(), email: email.trim(), updatesOptIn, setupInterest });
       setSubmitted(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'We could not save your early-access request.');
@@ -35,6 +36,7 @@ export function WaitlistForm() {
       {error && <div className="formError" role="alert">{error}</div>}
       <label>First name<input required value={firstName} onChange={event => setFirstName(event.target.value)} placeholder="Nate" autoComplete="given-name" maxLength={80} /></label>
       <label>Email address<input required type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" autoComplete="email" maxLength={254} /></label>
+      <label className="waitlistCheckbox"><input type="checkbox" checked={setupInterest} onChange={event => setSetupInterest(event.target.checked)} /><span>I’d be interested in a guided home-inventory setup session.</span></label>
       <label className="waitlistCheckbox"><input type="checkbox" checked={updatesOptIn} onChange={event => setUpdatesOptIn(event.target.checked)} /><span>Also send me occasional product updates.</span></label>
       <button className="primary" disabled={busy}><Mail />{busy ? 'Joining…' : 'Notify me when it’s ready'}<ArrowRight /></button>
       <small>By joining, you agree that ProofVault may email you when early access opens. You can opt out of optional updates at any time.</small>

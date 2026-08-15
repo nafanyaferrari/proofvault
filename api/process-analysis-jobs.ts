@@ -48,6 +48,17 @@ async function verifiedUserId(req: RequestLike, url: string, anonKey: string) {
   return user.id;
 }
 
+async function householdOwnerForUser(url: string, serviceRoleKey: string, userId: string) {
+  const response = await fetch(`${url}/rest/v1/rpc/proofvault_household_owner_for_user`, {
+    method: 'POST',
+    headers: headers(serviceRoleKey, { 'content-type': 'application/json' }),
+    body: JSON.stringify({ target_user_id: userId })
+  });
+  if (!response.ok) throw new Error('Could not resolve the household for this saved photo.');
+  const ownerId = await response.json() as unknown;
+  return typeof ownerId === 'string' && ownerId ? ownerId : userId;
+}
+
 function isScheduler(req: RequestLike) {
   const secret = process.env.CRON_SECRET;
   return Boolean(secret && headerValue(req, 'authorization') === `Bearer ${secret}`);
@@ -154,7 +165,8 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
   try {
     const config = serverConfig();
-    const userId = isScheduler(req) ? undefined : await verifiedUserId(req, config.url, process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
+    const signedInUserId = isScheduler(req) ? undefined : await verifiedUserId(req, config.url, process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '');
+    const userId = signedInUserId ? await householdOwnerForUser(config.url, config.serviceRoleKey, signedInUserId) : undefined;
     if (!isScheduler(req) && !userId) return res.status(401).json({ error: 'Sign in is required to process saved photo jobs.' });
     const retryJobId = typeof (req.body as { retryJobId?: unknown } | undefined)?.retryJobId === 'string' ? (req.body as { retryJobId: string }).retryJobId : undefined;
     if (retryJobId && userId) await requeueFailedJob(config.url, config.serviceRoleKey, retryJobId, userId);

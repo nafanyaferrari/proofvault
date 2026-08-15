@@ -2,6 +2,7 @@ export interface WaitlistInterest {
   firstName: string;
   email: string;
   updatesOptIn: boolean;
+  setupInterest: boolean;
 }
 
 interface WaitlistResponse {

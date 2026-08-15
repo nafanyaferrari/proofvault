@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { cloudPersistenceService } from './cloudPersistenceService';
 
 export type AnalysisJobStatus = 'queued' | 'processing' | 'retrying' | 'complete' | 'reviewed' | 'failed' | 'cancelled';
 
@@ -52,10 +53,11 @@ export const analysisQueueService = {
 
     if (!photoDataUrls.length) throw new Error('Choose at least one photo to analyze.');
     const id = crypto.randomUUID();
+    const ownerId = await cloudPersistenceService.householdOwnerId();
     const uploads = await Promise.all(photoDataUrls.slice(0, 4).map(async (photoDataUrl, index) => {
       const mimeType = dataUrlMimeType(photoDataUrl);
       const extension = mimeType === 'image/png' ? 'png' : mimeType === 'image/webp' ? 'webp' : 'jpg';
-      const storagePath = `${userData.user.id}/analysis-jobs/${id}-${index + 1}.${extension}`;
+      const storagePath = `${ownerId}/analysis-jobs/${id}-${index + 1}.${extension}`;
       const blob = await dataUrlBlob(photoDataUrl);
       const { error } = await client.storage.from('proofvault-item-photos').upload(storagePath, blob, { contentType: mimeType, upsert: false });
       if (error) throw error;
@@ -65,7 +67,7 @@ export const analysisQueueService = {
 
     const row = {
       id,
-      user_id: userData.user.id,
+      user_id: ownerId,
       storage_path: storagePath,
       mime_type: uploads[0].mimeType,
       storage_paths: uploads.map(upload => upload.storagePath),

@@ -16,7 +16,11 @@ export interface InventoryItem {
   valuationSourceSummary?: string; valuationCheckedAt?: string; valuationNotes?: string;
   comparableListings: ComparableListing[]; photos: string[]; serialPhotos: string[]; markingPhotos: string[];
   markingNotes?: string; hasOwnerMarking?: boolean; damagePhotos?: string[]; otherFiles?: string[];
-  receiptFiles: string[]; appraisalFiles: string[]; warrantyFiles: string[]; status: ItemStatus;
+  receiptFiles: string[]; appraisalFiles: string[]; warrantyFiles: string[];
+  /** Household reference details. Dates use YYYY-MM-DD to avoid timezone surprises. */
+  warrantyExpiresAt?: string; manualUrl?: string; maintenanceTask?: string; maintenanceDueAt?: string;
+  maintenanceCadenceMonths?: number; maintenanceLastCompletedAt?: string;
+  status: ItemStatus;
   notes?: string; archivedAt?: string; createdAt: string; updatedAt: string;
 }
 export interface IncidentItem { itemId: string; status: Exclude<ItemStatus, 'normal'>; notes?: string; photos?: string[]; }

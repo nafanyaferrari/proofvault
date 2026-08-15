@@ -14,9 +14,7 @@ Create a project at <https://supabase.com>. The free tier is enough for early te
 
 Open Supabase → SQL Editor → New query, paste the contents of:
 
-`supabase/migrations/0001_proofvault_foundation.sql`
-
-Run it once.
+Run every file in `supabase/migrations` in numeric order. For the current prototype, run `0001` through `0008` once each. The later migrations add durable photo jobs, early-access sign-ups, and secure one-member household sharing.
 
 ## 3. Add app environment variables
 
@@ -46,6 +44,6 @@ Go to Settings → Cloud sync. Send yourself a magic link, sign in, then upload 
 
 ## What this does not do yet
 
-- It does not upload every photo/blob to Supabase Storage yet. It creates private buckets and policies so the next step can move large photo data out of browser storage.
+- Household sharing is intentionally limited to one connected existing ProofVault account. The household owner connects it from Settings → Household access; both people should refresh after connecting.
 - It does not enforce paid subscriptions server-side yet. Current premium/free mode is still demo-mode until real payments/auth claims are added.
 - It does not run live AI analysis yet. AI calls should be made from a backend endpoint so provider keys stay off the client.

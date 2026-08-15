@@ -53,7 +53,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
   const isPremium = tier === 'premium';
   const set = <K extends keyof InventoryItem>(key: K, value: InventoryItem[K]) => setDraft(current => ({ ...current, [key]: value }));
   const text = <K extends keyof InventoryItem>(key: K) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => set(key, event.target.value as InventoryItem[K]);
-  const number = (key: 'purchasePrice' | 'userEnteredValue') => (event: ChangeEvent<HTMLInputElement>) => set(key, event.target.value ? Number(event.target.value) : undefined);
+  const number = (key: 'purchasePrice' | 'userEnteredValue' | 'maintenanceCadenceMonths') => (event: ChangeEvent<HTMLInputElement>) => set(key, event.target.value ? Number(event.target.value) : undefined);
 
   const evidenceKeys: EvidenceKey[] = ['photos', 'serialPhotos', 'markingPhotos', 'receiptFiles', 'appraisalFiles', 'warrantyFiles', 'damagePhotos', 'otherFiles'];
   const evidenceKinds: Record<EvidenceKey, EvidenceKind> = { photos: 'item', serialPhotos: 'serial', markingPhotos: 'marking', receiptFiles: 'receipt', appraisalFiles: 'appraisal', warrantyFiles: 'warranty', damagePhotos: 'damage', otherFiles: 'other' };
@@ -235,12 +235,25 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
           <label>Notes <textarea value={draft.notes ?? ''} onChange={text('notes')} placeholder="Accessories, warranty notes, where it was bought, or anything else useful." /></label>
         </section>
 
+        <section className="subSection binderFormSection">
+          <div><h3>Home Binder</h3><p className="helper">Optional household reference details: a manual link, warranty deadline, and simple maintenance reminder.</p></div>
+          <div className="fields two">
+            <label>Warranty expires <input type="date" value={draft.warrantyExpiresAt ?? ''} onChange={text('warrantyExpiresAt')} /></label>
+            <label>Manual / support link <input type="url" value={draft.manualUrl ?? ''} onChange={text('manualUrl')} placeholder="https://..." /></label>
+          </div>
+          <div className="fields two">
+            <label>Maintenance task <input value={draft.maintenanceTask ?? ''} onChange={text('maintenanceTask')} placeholder="Replace filter, inspect batteries..." /></label>
+            <label>Next due date <input type="date" value={draft.maintenanceDueAt ?? ''} onChange={text('maintenanceDueAt')} /></label>
+          </div>
+          <label>Repeat every (months) <input type="number" min="1" step="1" value={draft.maintenanceCadenceMonths ?? ''} onChange={number('maintenanceCadenceMonths')} placeholder="Optional" /></label>
+        </section>
+
         <section className="subSection">
           <h3>Additional documentation</h3>
           <p className="helper">If you are signed in with Supabase, new evidence uploads to private cloud storage. Otherwise it stays in this browser as demo/local data.</p>
           <div className="evidenceGrid">
             <EvidenceUploader label="Marking photos" hint="Owner-applied marking and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values => setEvidence('markingPhotos', values)} onError={setError} />
-            <EvidenceUploader label="Receipts" hint="Images or PDF purchase records" itemId={draft.id} kind="receipt" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('receiptFiles', values)} onError={setError} />
+            <EvidenceUploader label="Receipts & invoices" hint="Images or PDF purchase records" itemId={draft.id} kind="receipt" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('receiptFiles', values)} onError={setError} />
             <EvidenceUploader label="Appraisals" hint="Images or PDF appraisal records" itemId={draft.id} kind="appraisal" values={draft.appraisalFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('appraisalFiles', values)} onError={setError} />
             <EvidenceUploader label="Warranty files" hint="Images or PDF warranty records" itemId={draft.id} kind="warranty" values={draft.warrantyFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('warrantyFiles', values)} onError={setError} />
             <EvidenceUploader label="Damage / loss photos" hint="Condition after an incident" itemId={draft.id} kind="damage" values={draft.damagePhotos ?? []} onChange={values => setEvidence('damagePhotos', values)} onError={setError} />

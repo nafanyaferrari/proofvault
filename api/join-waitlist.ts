@@ -5,7 +5,7 @@ declare const process: { env: Record<string, string | undefined> };
 interface VercelRequest { method?: string; body?: unknown; }
 interface VercelResponse { status(code: number): VercelResponse; json(payload: unknown): void; setHeader(name: string, value: string): void; }
 
-interface WaitlistBody { firstName?: unknown; email?: unknown; updatesOptIn?: unknown; website?: unknown; }
+interface WaitlistBody { firstName?: unknown; email?: unknown; updatesOptIn?: unknown; setupInterest?: unknown; website?: unknown; }
 
 function text(value: unknown, max: number) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -44,6 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       first_name: firstName,
       email,
       updates_opt_in: body.updatesOptIn === true,
+      setup_interest: body.setupInterest === true,
       launch_notification_consent: true,
       source: 'website',
       last_submitted_at: new Date().toISOString()
