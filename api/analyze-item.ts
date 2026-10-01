@@ -63,6 +63,12 @@ interface AiItemJson {
   condition?: ItemCondition;
   distinguishingFeatures?: string;
   suggestedDescription?: string;
+  // Text the provider actually read in the image. A brand, model, serial, or
+  // barcode is not prefilled unless it is grounded in this visible evidence.
+  observedText?: Partial<Record<'make' | 'model' | 'serialNumber' | 'barcode', string>>;
+  // A distinctive visible brand mark (for example, the Apple logo). This may
+  // support make only; it is never enough evidence for a model or identifier.
+  observedBrandLogo?: string;
   confidence?: Partial<Record<'make' | 'model' | 'serialNumber' | 'barcode' | 'category' | 'condition', Confidence>>;
   warnings?: string[];
   detectedItems?: AiItemJson[];
@@ -153,6 +159,16 @@ function cleanText(value: unknown, fallback = '') {
   return typeof value === 'string' ? value.trim().slice(0, 500) : fallback;
 }
 
+function normalizedText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function isGroundedInVisibleText(candidate: string, evidence: unknown) {
+  const normalizedCandidate = normalizedText(candidate);
+  const normalizedEvidence = normalizedText(cleanText(evidence));
+  return Boolean(normalizedCandidate && normalizedEvidence && (normalizedEvidence.includes(normalizedCandidate) || normalizedCandidate.includes(normalizedEvidence)));
+}
+
 function confidence(value: unknown): Confidence {
   return confidenceValues.includes(value as Confidence) ? value as Confidence : 'low';
 }
@@ -167,11 +183,25 @@ function category(value: unknown) {
 }
 
 function baseDraft(request: SecureItemIntakeRequest, ai: AiItemJson = {}): InventoryDraft {
-  const serial = cleanText(ai.serialNumber);
-  const make = cleanText(ai.make);
-  const model = cleanText(ai.model);
+  const suppliedSerial = cleanText(ai.serialNumber);
+  const suppliedMake = cleanText(ai.make);
+  const suppliedModel = cleanText(ai.model);
+  // Generic product silhouettes often resemble a familiar brand. Requiring
+  // visible label text means a useful category/description is still saved,
+  // while a guessed make, model, or serial never becomes record data.
+  const serial = isGroundedInVisibleText(suppliedSerial, ai.observedText?.serialNumber) ? suppliedSerial : '';
+  const makeFromText = isGroundedInVisibleText(suppliedMake, ai.observedText?.make);
+  const makeFromLogo = isGroundedInVisibleText(suppliedMake, ai.observedBrandLogo);
+  const make = makeFromText || makeFromLogo ? suppliedMake : '';
+  const model = isGroundedInVisibleText(suppliedModel, ai.observedText?.model) ? suppliedModel : '';
   const itemName = cleanText(ai.itemName) || [make, model].filter(Boolean).join(' ') || 'Photo-documented item';
-  const suggestedDescription = cleanText(ai.suggestedDescription, 'Photo analysis created this draft. Verify all fields before relying on them for insurance, police, or recovery use.');
+  const providerDescription = cleanText(ai.suggestedDescription);
+  const visibleDetails = cleanText(ai.distinguishingFeatures);
+  const suggestedDescription = providerDescription || [
+    `Photo shows ${itemName}.`,
+    visibleDetails ? `Visible details: ${visibleDetails}.` : '',
+    'Verify identifying details from the item, label, receipt, or packaging before relying on this record.'
+  ].filter(Boolean).join(' ');
   return {
     itemName,
     category: category(ai.category),
@@ -180,7 +210,7 @@ function baseDraft(request: SecureItemIntakeRequest, ai: AiItemJson = {}): Inven
     make,
     model,
     serialNumber: serial ? `VERIFY-${serial.replace(/^VERIFY-/i, '')}` : '',
-    barcode: cleanText(ai.barcode),
+    barcode: isGroundedInVisibleText(cleanText(ai.barcode), ai.observedText?.barcode) ? cleanText(ai.barcode) : '',
     ownerMarking: '',
     markingType: '',
     markingLocation: '',
@@ -201,6 +231,7 @@ function mockResponse(request: SecureItemIntakeRequest): SecureItemIntakeRespons
     make: 'Milwaukee',
     model: 'M18',
     serialNumber: '48291',
+    observedText: { make: 'Milwaukee', model: 'M18', serialNumber: '48291' },
     condition: 'used',
     distinguishingFeatures: 'Red and black cordless drill with battery and carrying case',
     suggestedDescription: 'Milwaukee M18 cordless drill/driver kit shown with battery and carrying case. Make, model, accessories, condition, and serial number should be verified against the physical item.'
@@ -258,6 +289,13 @@ function itemJsonProperties() {
         }
       },
       warnings: { type: 'array', items: { type: 'string' } }
+      ,observedText: {
+        type: 'object',
+        properties: {
+          make: { type: 'string' }, model: { type: 'string' }, serialNumber: { type: 'string' }, barcode: { type: 'string' }
+        }
+      },
+      observedBrandLogo: { type: 'string' }
   };
 }
 
@@ -304,7 +342,7 @@ async function analyzeWithGemini(request: SecureItemIntakeRequest): Promise<AiIt
 
   const requestBody = JSON.stringify({
     contents: [{
-      parts: [{ text: 'Analyze these photos for a household inventory app. The first photo is an overview; later photos may be close-ups of the make, model, serial number, barcode, or condition of that same primary item. Return JSON only. Use empty strings for uncertain fields. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning. If the overview clearly contains more than one separately inventory-worthy item, put every distinct candidate, including the primary item, in detectedItems (maximum five). Do not split normal accessories, packaging, or parts of the same item into separate candidates.' }, ...photoParts.flatMap(({ index, ...part }) => [{ text: index === 0 ? 'Photo 1: overview of the item or scene.' : `Photo ${index + 1}: close-up evidence for the primary item.` }, part])]
+      parts: [{ text: 'Analyze these photos for a household inventory app. The first photo is an overview; later photos may be close-ups of the make, model, serial number, barcode, or condition of that same primary item. Return JSON only. Always write a concise 1–2 sentence suggestedDescription based only on visible facts. Use empty strings for uncertain fields. Never infer a brand or model from color, shape, styling, or resemblance. You may provide make when an unmistakable visible brand logo is present; put that brand name in observedBrandLogo and leave observedText.make empty. Fill model, serialNumber, and barcode only when their exact label text is visibly readable, and put that text in observedText. For every other non-empty make value, put the exact readable text in observedText.make. Never invent serial numbers, barcodes, prices, or appraisals. If a serial number is not visibly legible, leave it empty and add a warning. If the overview clearly contains more than one separately inventory-worthy item, put every distinct candidate, including the primary item, in detectedItems (maximum five). Do not split normal accessories, packaging, or parts of the same item into separate candidates.' }, ...photoParts.flatMap(({ index, ...part }) => [{ text: index === 0 ? 'Photo 1: overview of the item or scene.' : `Photo ${index + 1}: close-up evidence for the primary item.` }, part])]
     }],
     generationConfig: {
       response_mime_type: 'application/json',
@@ -385,7 +423,7 @@ async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiIt
       model,
       input: [{
         role: 'user',
-        content: [{ type: 'input_text', text: 'Analyze these household inventory photos. The first is an overview; later photos may be label, make/model, serial-number, barcode, or condition close-ups for the same primary item. Return only JSON with itemName, category, make, model, serialNumber, barcode, condition, distinguishingFeatures, suggestedDescription, confidence, warnings, and detectedItems. Use empty strings for uncertain fields. Never claim a serial number unless visibly legible. If the first photo has distinct inventory-worthy items, detectedItems should include each candidate including the primary; do not split accessories or parts of the same item.' }, ...request.photos.map(photo => ({ type: 'input_image', image_url: photo.uri }))]
+        content: [{ type: 'input_text', text: 'Analyze these household inventory photos. The first is an overview; later photos may be label, make/model, serial-number, barcode, or condition close-ups for the same primary item. Return only JSON with itemName, category, make, model, serialNumber, barcode, condition, distinguishingFeatures, suggestedDescription, observedText, observedBrandLogo, confidence, warnings, and detectedItems. Always write a concise 1–2 sentence suggestedDescription based only on visible facts. Use empty strings for uncertain fields. Never infer brand or model from color, shape, styling, or resemblance. You may provide make only when exact brand text is readable or an unmistakable brand logo is visible; for logo evidence put the brand name in observedBrandLogo. Model, serialNumber, and barcode require exact readable text in observedText. Otherwise leave those fields empty. Never claim a serial number unless visibly legible. If the first photo has distinct inventory-worthy items, detectedItems should include each candidate including the primary; do not split accessories or parts of the same item.' }, ...request.photos.map(photo => ({ type: 'input_image', image_url: photo.uri }))]
       }]
     })
   });
@@ -399,7 +437,12 @@ async function analyzeWithOpenAi(request: SecureItemIntakeRequest): Promise<AiIt
 
 function responseFromAi(request: SecureItemIntakeRequest, ai: AiItemJson, source: 'gemini-vision' | 'openai-vision'): SecureItemIntakeResponse {
   const draft = baseDraft(request, ai);
-  const warnings = [...(ai.warnings ?? []), SERIAL_VERIFICATION_WARNING];
+  const makeWasLogoRecognized = Boolean(draft.make && ai.observedBrandLogo && isGroundedInVisibleText(draft.make, ai.observedBrandLogo) && !isGroundedInVisibleText(draft.make, ai.observedText?.make));
+  const warnings = [
+    ...(ai.warnings ?? []),
+    ...(makeWasLogoRecognized ? ['Make was suggested from a visible brand logo. Verify it before relying on this record.'] : []),
+    SERIAL_VERIFICATION_WARNING
+  ];
   return {
     draft,
     suggestedTitle: draft.itemName,

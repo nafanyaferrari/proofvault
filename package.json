@@ -7,6 +7,16 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "node --import tsx --test tests/*.test.ts",
+    "test:watch": "node --import tsx --test --watch tests/*.test.ts",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage tests/*.test.ts",
+    "typecheck": "tsc -b && npm run typecheck --workspace @proofvault/mobile",
+    "lint": "eslint .",
+    "install:playwright": "set PLAYWRIGHT_BROWSERS_PATH=0&& playwright install chromium",
+    "test:e2e": "set PLAYWRIGHT_BROWSERS_PATH=0&& playwright test",
+    "test:e2e:live-photo": "set PLAYWRIGHT_BROWSERS_PATH=0&& set RUN_LIVE_PHOTO_TESTS=true&& set LIVE_E2E_URL=https://proofvault-app.vercel.app&& playwright test e2e/live-photo-provider.spec.ts --project=desktop-chromium",
+    "test:e2e:live-accuracy": "set PLAYWRIGHT_BROWSERS_PATH=0&& set RUN_LIVE_PHOTO_TESTS=true&& set LIVE_E2E_URL=https://proofvault-app.vercel.app&& playwright test e2e/live-photo-accuracy.spec.ts --project=desktop-chromium --workers=1",
+    "test:all": "npm run test && npm run test:e2e",
+    "qa": "npm run typecheck && npm run lint && npm run test:coverage && npm run test:e2e",
     "browser:cdp": "node scripts/launch-agent-browser-cdp.cjs"
   },
   "dependencies": {
@@ -18,12 +28,15 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "agent-browser": "^0.31.1",
+    "eslint": "^10.11.0",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "typescript-eslint": "^8.71.0"
   },
   "private": true,
   "workspaces": [

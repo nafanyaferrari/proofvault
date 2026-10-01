@@ -37,6 +37,16 @@ Settings includes **Reset demo data** for walkthroughs and QA. Download a backup
 
 Before approving a deploy, run the web checklist in `WEB_PREDEPLOY_QA.md`.
 
+## Quality assurance
+
+Run the repeatable release gate with:
+
+```bash
+npm run qa
+```
+
+It checks web and mobile TypeScript, linting, unit/integration coverage, and deterministic Playwright flows. The full manual, offline, device, privacy, and live-provider checklist is in [`docs/QA_PROTOCOL.md`](docs/QA_PROTOCOL.md). Live photo-provider tests are intentionally opt-in because they consume provider quota.
+
 
 ## Deploy
 

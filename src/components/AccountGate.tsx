@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowRight, Camera, Check, Cloud, FileText, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, Camera, Check, FileText, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
 import { cloudPersistenceService, CloudStatus } from '../services/cloudPersistenceService';
 import { PricingPage } from './PricingPage';
 import { WaitlistForm } from './WaitlistForm';

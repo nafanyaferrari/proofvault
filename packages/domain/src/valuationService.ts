@@ -20,12 +20,26 @@ const catalog: Record<string, Array<[string, string, number, 'new' | 'used' | 'r
 
 export const valuationService = { async findComparableValues(input: ValuationInput): Promise<ValuationResult> {
   await new Promise(resolve => setTimeout(resolve, 450));
+  const normalizedName = input.itemName.trim();
+  const missingFields = ['make', 'model', 'condition'].filter(field => !input[field as keyof ValuationInput]);
+  if (normalizedName.length < 3 || /\b(unidentified|unknown|mystery|misc(?:ellaneous)?)\b/i.test(normalizedName)) {
+    return {
+      estimatedReplacementValueLow: 0,
+      estimatedReplacementValueHigh: 0,
+      suggestedReplacementValue: 0,
+      confidence: 'low',
+      sourceSummary: 'No suitable comparable listings found for the available details.',
+      comparableListings: [],
+      missingFields: [...new Set(['item name', 'make', 'model', 'clear photos', ...missingFields])],
+      disclaimer: VALUATION_DISCLAIMER,
+    };
+  }
   const category = (input.category || '').toLowerCase();
   const key = category.includes('tool') ? 'tools' : category.includes('jewel') ? 'jewelry' : category.includes('elect') ? 'electronics' : category.includes('bicy') ? 'bicycles' : 'other';
   const checkedAt = new Date().toISOString();
   const query = encodeURIComponent([input.make, input.model, input.itemName].filter(Boolean).join(' '));
   const comparableListings = catalog[key].map(([title, marketplace, price, condition], index): ComparableListing => ({ id: uid('comp'), title, marketplace, condition, price, currency: 'USD', url: `https://www.google.com/search?q=${query}&tbm=shop&result=${index + 1}`, matchReason: index === 0 ? 'Closest current replacement by make, category, and product details' : `Similar ${condition} item in the same category`, matchConfidence: input.make && input.model ? 'high' : 'medium', checkedAt }));
   const prices = comparableListings.map(listing => listing.price);
-  const missingFields = ['make', 'model', 'condition'].filter(field => !input[field as keyof ValuationInput]);
-  return { estimatedReplacementValueLow: Math.min(...prices), estimatedReplacementValueHigh: Math.max(...prices), suggestedReplacementValue: Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length), confidence: missingFields.length ? 'medium' : 'high', sourceSummary: `${comparableListings.length} comparable listings across ${new Set(comparableListings.map(listing => listing.marketplace)).size} sources`, comparableListings, missingFields, disclaimer: VALUATION_DISCLAIMER };
+  const confidence = input.make && input.model ? 'high' : input.category || input.make || input.model ? 'medium' : 'low';
+  return { estimatedReplacementValueLow: Math.min(...prices), estimatedReplacementValueHigh: Math.max(...prices), suggestedReplacementValue: Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length), confidence, sourceSummary: `${comparableListings.length} comparable listings across ${new Set(comparableListings.map(listing => listing.marketplace)).size} sources`, comparableListings, missingFields, disclaimer: VALUATION_DISCLAIMER };
 } };

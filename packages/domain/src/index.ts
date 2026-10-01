@@ -7,4 +7,5 @@ export * from './aiDescriptionService';
 export * from './itemIntakeService';
 export * from './itemIntakeBackendContract';
 export * from './itemReview';
+export * from './inventorySearch';
 export * from './mobileBackupManifest';

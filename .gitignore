@@ -7,6 +7,8 @@ dist/
 dist-native/
 work/
 outputs/
+playwright-report/
+test-results/
 *.tsbuildinfo
 *.db
 *.log
