@@ -1,0 +1,7 @@
+import { Handshake, UsersRound } from 'lucide-react';
+import type { AssetVaultActivation } from '../services/activationService';
+
+export function PartnerReferralPanel({ activation, onChange }: { activation: AssetVaultActivation; onChange: (patch: Partial<AssetVaultActivation>) => void }) {
+  const input = (key: keyof AssetVaultActivation, label: string, placeholder: string) => <label key={key}>{label}<input value={String(activation[key] ?? '')} placeholder={placeholder} onChange={event => onChange({ [key]: event.target.value } as Partial<AssetVaultActivation>)} /></label>;
+  return <section className="panel settings partnerPanel"><div className="securityTitle"><Handshake /><div><h2>Partner & referral placeholder</h2><p>Give clients, tenants, or members a free AssetVault Proof Check so they can document valuables before theft, disaster, or loss.</p></div></div><div className="partnerAudience"><span>Insurance agencies</span><span>Storage facilities</span><span>Restoration companies</span><span>Security companies</span><span>Contractor associations</span><span>Churches & community groups</span></div><div className="fields two">{input('referralCode', 'Referral code', 'READY10')}{input('partnerName', 'Partner name', 'Example Storage')}{input('partnerId', 'Partner ID', 'partner-demo')}{input('partnerType', 'Partner type', 'Storage facility')}{input('referralSource', 'Referral source', 'Member handout')}</div><small><UsersRound /> Local prototype fields only. They are not sent to a partner or used for attribution yet.</small></section>;
+}

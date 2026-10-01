@@ -15,7 +15,7 @@ test.describe('live photo provider smoke test', () => {
       localStorage.setItem('pv-account-mode', 'local');
     });
     await page.goto(liveUrl!);
-    await expect(page.getByRole('heading', { name: 'Document your home without the paperwork.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Find out whether your valuables are claim-ready.' })).toBeVisible();
     await page.getByRole('button', { name: 'Inventory' }).click();
 
     const responsePromise = page.waitForResponse(response => response.url().includes('/api/analyze-item') && response.request().method() === 'POST');

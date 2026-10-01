@@ -68,7 +68,7 @@ test('incident exports preserve serials, owner markings, valuation disclaimer, a
   const incompleteIncident = { ...protocolIncident, policeCaseNumber: undefined, insuranceClaimNumber: undefined };
   const text = incidentReport(incompleteIncident, valuedItems, 'premium');
   assert.match(text, /Serial Number: MIL-123456789/);
-  assert.match(text, /Owner-Applied Marking: NF written/i);
+  assert.match(text, /Owner Mark: NF written/i);
   assert.match(text, /Police case: Not recorded/);
   assert.match(text, /Claim: Not recorded/);
   assert.match(text, /example\.com\/m18/);

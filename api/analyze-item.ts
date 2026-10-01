@@ -247,7 +247,7 @@ function mockResponse(request: SecureItemIntakeRequest): SecureItemIntakeRespons
       category: { value: draft.category, confidence: 'high', source: 'mock' },
       condition: { value: draft.condition, confidence: 'medium', source: 'mock' }
     },
-    warnings: ['The live photo analysis provider is not configured yet; ProofVault returned a sample result.', SERIAL_VERIFICATION_WARNING],
+    warnings: ['The live photo analysis provider is not configured yet; AssetVault returned a sample result.', SERIAL_VERIFICATION_WARNING],
     needsSerialVerification: true,
     providersUsed: ['mock'],
     candidates: [draft]

@@ -2,10 +2,10 @@ import { ChangeEvent, useState } from 'react';
 import { Check, Download, FileJson, RotateCcw, Upload } from 'lucide-react';
 import { loadBatchDefaults, loadIncidents } from '../data';
 import { InventoryItem, LocationRecord, SubscriptionTier } from '../types';
-import { createBackup, parseBackup, ProofVaultBackup } from '../services/backupService';
+import { createBackup, parseBackup, AssetVaultBackup } from '../services/backupService';
 
-interface BackupPanelProps { items:InventoryItem[]; locations:LocationRecord[]; tier:SubscriptionTier; onRestore:(backup:ProofVaultBackup)=>boolean; }
-export function BackupPanel({items,locations,tier,onRestore}:BackupPanelProps){const[pending,setPending]=useState<ProofVaultBackup>();const[message,setMessage]=useState('');const[error,setError]=useState('');
+interface BackupPanelProps { items:InventoryItem[]; locations:LocationRecord[]; tier:SubscriptionTier; onRestore:(backup:AssetVaultBackup)=>boolean; }
+export function BackupPanel({items,locations,tier,onRestore}:BackupPanelProps){const[pending,setPending]=useState<AssetVaultBackup>();const[message,setMessage]=useState('');const[error,setError]=useState('');
  const download=()=>{const backup=createBackup(items,loadIncidents(),locations,tier,loadBatchDefaults());const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`proofvault-backup-${new Date().toISOString().slice(0,10)}.json`;link.click();URL.revokeObjectURL(url);setMessage('Backup downloaded. Keep it somewhere safe.');setError('')};
  const select=async(event:ChangeEvent<HTMLInputElement>)=>{const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>10_000_000){setError('Backup file is too large.');return}try{const backup=parseBackup(await file.text());setPending(backup);setMessage('');setError('')}catch(reason){setPending(undefined);setError(reason instanceof Error?reason.message:'Backup could not be read.')}};
  const restore=()=>{if(!pending)return;if(!onRestore(pending)){setMessage('');setError('Restore did not complete. Browser storage may be full.');return}setMessage(`Restored ${pending.items.length} items and ${pending.incidents.length} incidents.`);setPending(undefined);setError('')};

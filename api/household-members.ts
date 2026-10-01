@@ -41,7 +41,7 @@ async function membersForOwner(url: string, key: string, ownerId: string) {
 }
 async function allUsers(url: string, key: string) {
   const response = await fetch(`${url}/auth/v1/admin/users?per_page=1000`, { headers: serviceHeaders(key) });
-  if (!response.ok) throw new Error('Could not look up that ProofVault account.');
+  if (!response.ok) throw new Error('Could not look up that AssetVault account.');
   const payload = await response.json() as { users?: SupabaseUser[] };
   return payload.users ?? [];
 }
@@ -67,8 +67,8 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     if (!validEmail(memberEmail)) return res.status(400).json({ message: 'Enter a valid email address.' });
     const users = await allUsers(url, key);
     const member = users.find(account => account.email?.toLowerCase() === memberEmail);
-    if (!member) return res.status(404).json({ message: 'That person needs to create a ProofVault account first, then try again.' });
-    if (member.id === user.id) return res.status(400).json({ message: 'Use a different ProofVault account for the household member.' });
+    if (!member) return res.status(404).json({ message: 'That person needs to create a AssetVault account first, then try again.' });
+    if (member.id === user.id) return res.status(400).json({ message: 'Use a different AssetVault account for the household member.' });
 
     const memberOwnerId = await householdOwner(url, key, member.id);
     if (action === 'invite' && memberOwnerId !== member.id) return res.status(409).json({ message: 'That account already belongs to another shared household.' });
@@ -83,7 +83,7 @@ export default async function handler(req: RequestLike, res: ResponseLike) {
     if (existing.length >= 1) return res.status(409).json({ message: 'This household already has its one connected member.' });
     const response = await fetch(`${url}/rest/v1/proofvault_household_members`, { method: 'POST', headers: serviceHeaders(key, { 'content-type': 'application/json', prefer: 'return=minimal' }), body: JSON.stringify({ owner_user_id: user.id, member_user_id: member.id }) });
     if (!response.ok) throw new Error('Could not connect that household account.');
-    return res.status(201).json({ message: `${memberEmail} can now access this household. They should refresh ProofVault after signing in.` });
+    return res.status(201).json({ message: `${memberEmail} can now access this household. They should refresh AssetVault after signing in.` });
   } catch (error) {
     console.error('[household-members] failed', { message: error instanceof Error ? error.message : 'Unknown error' });
     return res.status(503).json({ message: error instanceof Error ? error.message : 'Household access is temporarily unavailable.' });

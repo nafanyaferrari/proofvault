@@ -1,6 +1,6 @@
 -- Secure household sharing, v1.
 --
--- Some early ProofVault projects used only the foundation migration. Create the
+-- Some early AssetVault projects used only the foundation migration. Create the
 -- membership table here as well so this migration is safe to apply on either
 -- project history.
 create table if not exists public.proofvault_household_members (
@@ -17,7 +17,7 @@ drop policy if exists "Users read their household membership" on public.proofvau
 create policy "Users read their household membership" on public.proofvault_household_members for select
   to authenticated
   using ((select auth.uid()) = owner_user_id or (select auth.uid()) = member_user_id);
--- One owner can connect one existing ProofVault account. Shared household data
+-- One owner can connect one existing AssetVault account. Shared household data
 -- remains stored under the owner's account ID, while row-level security grants
 -- the connected member the same access. Do not expose service-role credentials
 -- to the browser; invitations are created by the serverless endpoint.

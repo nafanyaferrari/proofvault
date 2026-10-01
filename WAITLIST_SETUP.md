@@ -1,6 +1,6 @@
 # Early-access waitlist setup
 
-The public landing-page form stores interest separately from ProofVault accounts. It does not create an account, start a subscription, or reserve one of the first 500 paid founding spots.
+The public landing-page form stores interest separately from AssetVault accounts. It does not create an account, start a subscription, or reserve one of the first 500 paid founding spots.
 
 ## One-time setup
 
@@ -15,7 +15,7 @@ The endpoint accepts the form at `/api/join-waitlist`. Name, email, launch-notif
 
 For launch emails, export or connect this table to a transactional email provider later. Do not email people who are marked `unsubscribed`.
 
-## When ProofVault opens to accounts
+## When AssetVault opens to accounts
 
 1. Turn **Allow new users to sign up** back on in Supabase.
 2. Remove `VITE_PROOFVAULT_LAUNCH_MODE` or set it to any value other than `waitlist` in Vercel.

@@ -16,6 +16,6 @@ export async function canUseAppLock() {
 }
 
 export async function authenticateForVault() {
-  const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock ProofVault', cancelLabel: 'Cancel', fallbackLabel: 'Use device passcode', disableDeviceFallback: false, biometricsSecurityLevel: 'strong' });
+  const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Unlock AssetVault', cancelLabel: 'Cancel', fallbackLabel: 'Use device passcode', disableDeviceFallback: false, biometricsSecurityLevel: 'strong' });
   return result.success;
 }

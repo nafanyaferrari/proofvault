@@ -1,4 +1,4 @@
-# ProofVault MVP requirements audit
+# AssetVault MVP requirements audit
 
 Status as of 2026-07-21. The repository contains a React/Vite web MVP with a separate signed-out local demo and private Supabase account sync, plus an Expo SDK 56 mobile MVP that compiles into Android and iOS Hermes bundles.
 
@@ -32,7 +32,7 @@ Status as of 2026-07-21. The repository contains a React/Vite web MVP with a sep
 | All inventory fields | Complete (web and mobile core model) | Mobile add/edit covers identity, barcode, purchase data, marking details, condition/status, location/room, values, description, and notes. |
 | All evidence categories | Complete (web and mobile) | Mobile supports labeled general, serial, marking, damage/loss, receipt, appraisal, warranty, and other evidence. |
 | Native camera/library picker | Complete (mobile implementation) | Captures or selects images and copies them to app-private storage; physical-device acceptance remains. |
-| Owner-applied markings first-class | Complete (web and mobile core) | Mobile stores marking text, location, distinguishing features, and separately labeled marking photos. |
+| Owner Marks first-class | Complete (web and mobile core) | Mobile stores marking text, location, distinguishing features, and separately labeled marking photos. |
 | Mock AI description service/UI | Complete (web and mobile) | Shared typed mock service, saved suggestions, missing-field guidance, and explicit verification labeling. |
 | Documentation completeness score | Complete | 0–100 score and plain-language feedback. |
 | Incident-specific notes | Complete (web and mobile) | Stored per affected item and included in packets. |

@@ -1,9 +1,11 @@
-# ProofVault AI access plan
+# AssetVault AI access plan
 
 ## Customer-facing launch policy
 
-- **Free:** three one-time Try Before You Buy AI photo analyses.
-- **Premium Home:** 500 AI assists per annual membership cycle.
+- **AssetVault Proof Check:** three one-time Try Before You Buy photo analyses.
+- **AssetVault Complete:** 500 photo assists per annual membership cycle; published at $49/year or $6.99/month.
+- **AssetVault Family:** Complete access plus household protection; published at $99/year.
+- **Business plans:** limits will be defined separately from the household launch configuration.
 - **Add-ons:** 100 additional AI assists when billing is enabled.
 - **Household:** one account owner, one invited household member, and up to three active devices.
 
@@ -13,7 +15,7 @@ Do not market a truly unlimited plan at launch. A future higher-priced plan can 
 
 ## Enforcement architecture
 
-`supabase/migrations/0002_ai_entitlements.sql` creates an entitlement record, a server-written usage ledger, household/device tables, and an atomic assist-consumption function. New accounts receive the three-assist free trial automatically. A billing webhook should provision Premium with:
+`supabase/migrations/0002_ai_entitlements.sql` creates an entitlement record, a server-written usage ledger, household/device tables, and an atomic assist-consumption function. New accounts receive the three-assist free trial automatically. A billing webhook should provision AssetVault Complete with:
 
 - `annual_assist_limit = 500`
 - `household_member_limit = 1`
@@ -30,4 +32,4 @@ The Vercel AI endpoint supports enforcement only after these server environment 
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-Until then, the prototype presents its limits using browser-local counters. That is intentionally not a substitute for billing enforcement.
+Until then, the prototype presents plan access using browser-local counters and the Settings plan preview. That is intentionally not a substitute for billing enforcement.

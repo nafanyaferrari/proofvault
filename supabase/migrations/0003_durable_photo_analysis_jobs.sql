@@ -1,4 +1,4 @@
--- Durable photo-analysis queue for ProofVault.
+-- Durable photo-analysis queue for AssetVault.
 -- Photos are uploaded to the existing private proofvault-item-photos bucket
 -- before a job is created. Service-role server functions process and update
 -- jobs; signed-in users can only create, read, or cancel their own jobs.

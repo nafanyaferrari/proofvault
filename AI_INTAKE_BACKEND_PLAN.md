@@ -1,6 +1,6 @@
 # AI Photo Intake Backend Plan
 
-ProofVault now has a secure backend seam for real photo analysis while preserving the no-paid-service demo path.
+AssetVault now has a secure backend seam for real photo analysis while preserving the no-paid-service demo path.
 
 ## Current flow
 

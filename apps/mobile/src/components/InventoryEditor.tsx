@@ -25,7 +25,7 @@ export function InventoryEditor({ item, initialDraft, assisted=false, assistedWa
     <View style={styles.row}><View style={styles.half}><Field label="Make" value={draft.make} onChangeText={value=>set('make',value)} /></View><View style={styles.half}><Field label="Model" value={draft.model} onChangeText={value=>set('model',value)} /></View></View>
     <Field label="Serial number" value={draft.serialNumber} onChangeText={value=>set('serialNumber',value)} autoCapitalize="characters" />
     <Field label="Barcode" value={draft.barcode} onChangeText={value=>set('barcode',value)} />
-    <Field label="Owner-applied marking" value={draft.ownerMarking} onChangeText={value=>set('ownerMarking',value)} autoCapitalize="characters" />
+    <Field label="Owner Mark" value={draft.ownerMarking} onChangeText={value=>set('ownerMarking',value)} autoCapitalize="characters" />
     <Field label="Marking type" value={draft.markingType} onChangeText={value=>set('markingType',value)} />
     <Field label="Marking location" value={draft.markingLocation} onChangeText={value=>set('markingLocation',value)} />
     <Field label="Marking notes" value={draft.markingNotes} onChangeText={value=>set('markingNotes',value)} multiline />

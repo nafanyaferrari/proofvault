@@ -1,6 +1,6 @@
 # Durable Photo Analysis Setup
 
-This feature makes signed-in ProofVault uploads resilient: the photo is placed in private Supabase Storage before AI analysis begins, then a durable job retries provider outages without requiring another upload.
+This feature makes signed-in AssetVault uploads resilient: the photo is placed in private Supabase Storage before AI analysis begins, then a durable job retries provider outages without requiring another upload.
 
 ## One-time Supabase step
 
@@ -35,7 +35,7 @@ Add these as **Production** environment variables. Do not prefix any of them wit
 
 The included `vercel.json` schedules one daily recovery pass at 02:17 UTC. It is compatible with Vercel Hobby, where scheduled functions may run only once a day and the exact time is not guaranteed. Each invocation claims one job atomically, which prevents duplicate analysis but means Hobby is only a safety net—not a suitable paid-customer processing schedule.
 
-While a signed-in user has ProofVault open, the app starts eligible jobs immediately and checks progress every 12 seconds. The daily job protects photos after the browser closes.
+While a signed-in user has AssetVault open, the app starts eligible jobs immediately and checks progress every 12 seconds. The daily job protects photos after the browser closes.
 
 Before charging customers, change the schedule to every five minutes and use a Vercel plan that supports minute-level cron schedules:
 
@@ -47,7 +47,7 @@ Before charging customers, change the schedule to every five minutes and use a V
 
 - Each photo is safely stored before it is analyzed.
 - For one item, users can submit up to four photos: one overview plus close-ups of the make/model, serial number, barcode, or condition.
-- If the overview contains multiple distinct items, ProofVault creates separate unsaved review cards so the user chooses which records to keep.
+- If the overview contains multiple distinct items, AssetVault creates separate unsaved review cards so the user chooses which records to keep.
 - A provider outage puts the job into `retrying`; no credit is used.
 - A job left in `processing` for more than five minutes is automatically reclaimed on the next queue check; customers do not need to upload it again.
 - Completed analysis drafts appear automatically in the normal bulk-review flow.

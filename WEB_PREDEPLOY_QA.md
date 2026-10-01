@@ -1,4 +1,4 @@
-# ProofVault web pre-deploy QA
+# AssetVault web pre-deploy QA
 
 Run this against the local or preview web build before approving a production deploy.
 
@@ -29,11 +29,11 @@ Run this against the local or preview web build before approving a production de
 23. Type into a quick serial/value field, switch to another item, and confirm the quick-entry field is cleared so stale text cannot be saved to the wrong item.
 24. When all active items are complete enough, confirm the queue shows a clear-backlog confirmation instead of disappearing silently.
 
-## Replacement Value Assist
+## Value Assist
 
-1. In Settings, switch to Free demo access and confirm the copy labels this as a prototype test setting, not a paid subscription.
+1. In Settings, switch to AssetVault Proof Check preview and confirm the copy labels this as a prototype test setting, not a paid subscription.
 2. Open an item and confirm automatic lookup is locked while manual value entry works.
-3. Switch to Premium demo access.
+3. Switch to AssetVault Complete preview.
 4. Run **Estimate replacement cost** and confirm range, confidence, comparable listings, checked date, and disclaimer appear.
 
 ## Incidents and exports
@@ -47,7 +47,7 @@ Run this against the local or preview web build before approving a production de
 1. Open Settings and confirm browser storage meter appears or explains unavailable estimate.
 2. Download a backup.
 3. Choose **Reset demo data**, cancel once, then confirm once.
-4. Confirm inventory, incident sample data, locations, saved photo drafts, and Free demo access reset.
+4. Confirm inventory, incident sample data, locations, saved photo drafts, and AssetVault Proof Check preview reset.
 
 ## Mobile backup smoke check
 

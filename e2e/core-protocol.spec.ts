@@ -6,7 +6,7 @@ async function openLocalDemo(page: import('@playwright/test').Page) {
     localStorage.setItem('pv-account-mode', 'local');
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Document your home without the paperwork.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Find out whether your valuables are claim-ready.' })).toBeVisible();
 }
 
 test.describe('core documentation and incident protocol', () => {
@@ -43,6 +43,8 @@ test.describe('core documentation and incident protocol', () => {
 
   test('creates an incident with an affected item and renders the export preview', async ({ page }) => {
     await openLocalDemo(page);
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await page.getByLabel('AssetVault mock subscription plan').selectOption('complete');
     await page.getByRole('button', { name: 'Incident', exact: true }).click();
     await page.getByRole('button', { name: 'New incident' }).click();
     await page.getByLabel('Incident title').fill('Testing burglary');
@@ -51,9 +53,9 @@ test.describe('core documentation and incident protocol', () => {
     await page.getByRole('button', { name: 'Save incident' }).click();
 
     await expect(page.getByRole('heading', { name: 'Testing burglary' })).toBeVisible();
-    await expect(page.getByText('Police & insurance report')).toBeVisible();
+    await expect(page.getByText('Claim Ready Report & Law Enforcement Packet')).toBeVisible();
     await page.getByText('Preview plain-text report').click();
-    await expect(page.getByText(/Owner-Applied Marking: NJR/)).toBeVisible();
+    await expect(page.getByText(/Owner Mark: NJR/)).toBeVisible();
     await expect(page.getByText(/not an appraisal/i)).toBeVisible();
   });
 });

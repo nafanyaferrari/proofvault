@@ -36,7 +36,7 @@ async function openLocalDemo(page: import('@playwright/test').Page) {
     localStorage.setItem('pv-account-mode', 'local');
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Document your home without the paperwork.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Find out whether your valuables are claim-ready.' })).toBeVisible();
 }
 
 test.describe('photo-to-description intake', () => {
@@ -56,7 +56,7 @@ test.describe('photo-to-description intake', () => {
     await expect(page.getByLabel('Item name', { exact: true })).toHaveValue('Makita XDT19 impact driver kit');
     await expect(page.getByLabel('Make', { exact: true })).toHaveValue('Makita');
     await expect(page.getByLabel('Model', { exact: true })).toHaveValue('XDT19');
-    await expect(page.getByLabel('Serial Number (SN)', { exact: true })).toHaveValue('VERIFY-MKT-48291');
+    await expect(page.getByLabel('Serial Tracker (SN, VIN, IMEI, or barcode)', { exact: true })).toHaveValue('VERIFY-MKT-48291');
     await expect(page.getByText(/Serial-number candidates must be verified/i)).toBeVisible();
     expect(requests).toHaveLength(1);
     expect((requests[0] as { photos: unknown[]; includeValuation: boolean }).photos).toHaveLength(1);
@@ -105,14 +105,13 @@ test.describe('photo-to-description intake', () => {
     await page.getByLabel('Choose one item photo for photo analysis').setInputFiles(photoFixture);
 
     await expect(page.getByText('REVIEW PHOTO DRAFT')).toBeVisible();
-    await expect(page.getByText(/Secure photo analysis was unavailable, so ProofVault used a local sample result/i)).toBeVisible();
+    await expect(page.getByText(/Secure photo analysis was unavailable, so AssetVault used a local sample result/i)).toBeVisible();
     await expect(page.getByLabel('Make', { exact: true })).toHaveValue('Milwaukee');
   });
 });
-
 test('landing, pricing, coverage, and home-binder navigation render on desktop and mobile', async ({ page }) => {
   await page.goto('/pricing');
-  await expect(page.getByRole('heading', { name: 'Protect your home records for less while ProofVault grows.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Document your assets before theft, disaster, or loss.' })).toBeVisible();
 
   await openLocalDemo(page);
   await page.getByRole('button', { name: 'Coverage Center' }).click();

@@ -36,21 +36,21 @@ export function AccountGate({ status, onContinueLocal, onStatusChange, waitlistO
 
   return <main className="accountPage">
     <header className="landingNav">
-      <div className="accountBrand"><ShieldCheck /><b>ProofVault</b></div>
+      <div className="accountBrand"><ShieldCheck /><b>AssetVault</b></div>
       <div className="landingNavActions"><a href="/pricing">Pricing</a><a href="#early-access">Join early access</a>{!waitlistOnly&&<a href="#account">Sign in</a>}</div>
     </header>
 
     <section className="accountHero landingHero">
-      <p className="eyebrow green">BEFORE SOMETHING HAPPENS</p>
+      <p className="eyebrow green">PROOF OF OWNERSHIP BEFORE YOU NEED IT</p>
       <h1>Could you prove what your home is worth if you had to do it today?</h1>
-      <p className="sub">After a theft, fire, or loss, people are often asked to remember makes, models, serial numbers, receipts, and values when the evidence is hardest to find. ProofVault makes the first step simple: walk around and take photos.</p>
+      <p className="sub">AssetVault helps homeowners, renters, storage tenants, and businesses document valuables with photos, serial numbers, Owner Marks, receipts, appraisals, warranties, and replacement-value links—then create police and insurance packets when theft, disaster, or loss occurs.</p>
       <div className="landingHeroActions">
         <a className="primary landingPrimary" href="#early-access">Join the early-access list <ArrowRight /></a>
-        <a className="landingTextLink" href="#why">See why ProofVault exists <ArrowDown /></a>
+        <a className="landingTextLink" href="#why">See why AssetVault exists <ArrowDown /></a>
         <a className="landingTextLink" href="#demo">Jump to the no-sign-up demo <ArrowRight /></a>
         <a className="landingTextLink" href="/pricing">View Founding Household pricing <ArrowRight /></a>
       </div>
-      <div className="accountHighlights" aria-label="ProofVault benefits">
+      <div className="accountHighlights" aria-label="AssetVault benefits">
         <span><Camera />Start with photos, not forms</span>
         <span><Sparkles />Photo analysis helps find make, model, and SN</span>
         <span><FileText />Keep a usable incident packet</span>
@@ -66,15 +66,15 @@ export function AccountGate({ status, onContinueLocal, onStatusChange, waitlistO
         <article><b>2</b><h3>Evidence gets scattered</h3><p>Photos, receipts, and notes live in different places - or disappear with the item.</p></article>
         <article><b>3</b><h3>Claims need specifics</h3><p>Clear item records make it easier to describe what was lost and what replacement may cost.</p></article>
       </div>
-      <div className="whyReveal"><p className="eyebrow green">THE RELIEF</p><h2>Picture opening one clear record instead of rebuilding your memory.</h2><p>ProofVault turns a photo walk-around into reviewable item details, approximate replacement estimates, and an incident-ready packet. You remain in control: suggested details are clearly marked for review.</p></div>
+      <div className="whyReveal"><p className="eyebrow green">THE RELIEF</p><h2>Picture opening one clear record instead of rebuilding your memory.</h2><p>AssetVault turns a photo walk-around into reviewable item details, approximate replacement estimates, and an incident-ready packet. You remain in control: suggested details are clearly marked for review.</p></div>
     </section>
 
     <section className="demoSpotlight" id="demo">
-      <div><p className="eyebrow green">SEE THE ACTUAL FLOW</p><h2>Try ProofVault before you share an email.</h2><p>Use sample property, take the same photo-first path, and see make/model/SN review, approximate values, and an incident packet for yourself.</p><ul><li><Check />No account or payment needed</li><li><Check />Three free photo analyses in this browser</li><li><Check />Demo data stays separate from personal accounts</li></ul></div>
+      <div><p className="eyebrow green">SEE THE ACTUAL FLOW</p><h2>Try AssetVault before you share an email.</h2><p>Use sample property, take the same photo-first path, and see make/model/SN review, approximate values, and an incident packet for yourself.</p><ul><li><Check />No account or payment needed</li><li><Check />Three free photo analyses in this browser</li><li><Check />Demo data stays separate from personal accounts</li></ul></div>
       <div className="demoSpotlightAction"><Camera /><b>Ready to see it work?</b><button className="primary" onClick={onContinueLocal}>Open the interactive demo <ArrowRight /></button><small>About two minutes. You can reset the sample data any time.</small></div>
     </section>
 
-    <section className="demoFlowPreview" aria-label="ProofVault demo workflow preview">
+    <section className="demoFlowPreview" aria-label="AssetVault demo workflow preview">
       <div><b>1</b><span>Take a clear photo of each item</span></div>
       <div><b>2</b><span>Review make, model, SN, and value</span></div>
       <div><b>3</b><span>Save records or create an incident packet</span></div>

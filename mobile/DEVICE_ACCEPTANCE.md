@@ -1,4 +1,4 @@
-# ProofVault mobile device acceptance
+# AssetVault mobile device acceptance
 
 ## Automated checks completed
 

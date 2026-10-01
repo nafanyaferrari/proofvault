@@ -39,7 +39,7 @@ export const itemIntakeService = {
         ...fallback,
         warnings: [
           ...(fallback.warnings ?? []),
-          'Secure photo analysis was unavailable, so ProofVault used a local sample result.'
+          'Secure photo analysis was unavailable, so AssetVault used a local sample result.'
         ]
       };
     }

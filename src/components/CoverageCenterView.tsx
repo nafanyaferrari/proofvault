@@ -16,7 +16,7 @@ export function CoverageCenterView({ items, open }: CoverageCenterViewProps) {
   const valueMissing = active.filter(item => !item.userEnteredValue && !item.estimatedReplacementValueSelected).length;
   const readiness = active.length ? Math.round(documented.length / active.length * 100) : 0;
   return <>
-    <header className="coverageHead"><p className="eyebrow green">COVERAGE CENTER</p><h1>See what is ready—and what could cost you later.</h1><p className="sub">ProofVault looks for the records that still need identification, proof, or a replacement value before an insurance or loss event.</p></header>
+    <header className="coverageHead"><p className="eyebrow green">COVERAGE CENTER</p><h1>See what is ready—and what could cost you later.</h1><p className="sub">AssetVault looks for the records that still need identification, proof, or a replacement value before an insurance or loss event.</p></header>
     <section className="coverageStats" aria-label="Coverage readiness summary">
       <div><PackageCheck /><span><b>{readiness}%</b><small>records well documented</small></span></div>
       <div><CircleDollarSign /><span><b>{money(valueTotal)}</b><small>recorded replacement value</small></span></div>

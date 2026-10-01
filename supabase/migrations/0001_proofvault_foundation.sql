@@ -1,4 +1,4 @@
--- ProofVault free-tier Supabase foundation.
+-- AssetVault free-tier Supabase foundation.
 --
 -- Apply this in the Supabase SQL editor or with the Supabase CLI after creating
 -- a free Supabase project. Keep service-role keys out of the client app. The

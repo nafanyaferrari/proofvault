@@ -153,7 +153,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
       <div className="fields three priorityFields">
         <label>Make <input value={draft.make ?? ''} onChange={text('make')} placeholder="Milwaukee" /></label>
         <label>Model <input value={draft.model ?? ''} onChange={text('model')} placeholder="M18 2801-20" /></label>
-        <label>Serial Number (SN) <input value={draft.serialNumber ?? ''} onChange={text('serialNumber')} placeholder="Verify from label" /></label>
+        <label>Serial Tracker (SN, VIN, IMEI, or barcode) <input value={draft.serialNumber ?? ''} onChange={text('serialNumber')} placeholder="Verify from label" /></label>
       </div>
       <p className="essentialHint">Make and model usually drive replacement value. SN helps identify the exact item if it is lost, stolen, or recovered later.</p>
       <div className="fields two">
@@ -179,12 +179,12 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
     <section className="panel formSection aiSection">
       <div className="aiHeading">
         <div>
-          <p className="eyebrow green">{isPremium ? 'PREMIUM PHOTO ASSIST' : 'PREMIUM DEMO FEATURE'}</p>
+          <p className="eyebrow green">{isPremium ? 'ASSETVAULT COMPLETE PHOTO ASSIST' : 'COMPLETE FEATURE'}</p>
           <h2>Use photo analysis to clean up the record</h2>
         </div>
-        <button type="button" onClick={isPremium ? suggest : onUpgrade} disabled={aiLoading}>{isPremium ? <Sparkles /> : <LockKeyhole />}{aiLoading ? 'Reviewing...' : isPremium ? 'Generate description' : 'Enable Premium demo features'}</button>
+        <button type="button" onClick={isPremium ? suggest : onUpgrade} disabled={aiLoading}>{isPremium ? <Sparkles /> : <LockKeyhole />}{aiLoading ? 'Reviewing...' : isPremium ? 'Generate description' : 'Preview AssetVault Complete'}</button>
       </div>
-      <p className="helper">{isPremium ? 'Photo analysis can draft a plain-language description from visible details. Please verify any identifier it suggests.' : 'Premium demo access includes photo descriptions, make/model help, SN recognition from photos, and automatic value comparison. It is a prototype test setting, not a paid subscription.'}</p>
+      <p className="helper">{isPremium ? 'Photo analysis can draft a plain-language description from visible details. Please verify any identifier it suggests.' : 'AssetVault Complete preview includes photo descriptions, make/model help, SN recognition from photos, and automatic value comparison. It is a prototype test setting, not a paid subscription.'}</p>
       {aiResult && <div className="aiResult"><b>{aiResult.suggestedTitle}</b><p>{aiResult.suggestedDescription}</p>{aiResult.visibleIdentifiers.map(identifier => <small key={identifier}>{identifier}</small>)}{aiResult.missingRecommendedFields.length > 0 && <small>Recommended: add {aiResult.missingRecommendedFields.join(', ')}.</small>}<div><button type="button" onClick={() => { set('itemName', aiResult.suggestedTitle); set('userDescription', aiResult.suggestedDescription); }}>Use title & description</button></div></div>}
     </section>
 
@@ -215,9 +215,9 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
         </section>
 
         <section className="subSection">
-          <h3>Owner-applied markings</h3>
-          <p className="helper">Examples: initials, engraving, paint mark, business sticker, QR tag, hidden marking, or distinct repair.</p>
-          <label className="toggleField"><input type="checkbox" checked={draft.hasOwnerMarking ?? Boolean(draft.ownerMarking)} onChange={event => set('hasOwnerMarking', event.target.checked)} />This item has an owner-applied marking</label>
+          <h3>Owner Marks</h3>
+          <p className="helper">Examples: initials, engravings, stickers, paint marks, QR tags, UV markings, distinctive damage, repairs, scratches, dents, welds, or modifications.</p>
+          <label className="toggleField"><input type="checkbox" checked={draft.hasOwnerMarking ?? Boolean(draft.ownerMarking)} onChange={event => set('hasOwnerMarking', event.target.checked)} />This item has an Owner Mark</label>
           <div className="fields two">
             <label>Marking text / description <input value={draft.ownerMarking ?? ''} onChange={text('ownerMarking')} /></label>
             <label>Marking type <select value={draft.markingType ?? ''} onChange={text('markingType')}><option value="">None</option><option>initials</option><option>engraved</option><option>paint</option><option>marker</option><option>sticker</option><option>QR/asset tag</option><option>UV marker</option><option>custom number</option><option>other</option></select></label>
@@ -252,7 +252,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
           <h3>Additional documentation</h3>
           <p className="helper">If you are signed in with Supabase, new evidence uploads to private cloud storage. Otherwise it stays in this browser as demo/local data.</p>
           <div className="evidenceGrid">
-            <EvidenceUploader label="Marking photos" hint="Owner-applied marking and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values => setEvidence('markingPhotos', values)} onError={setError} />
+            <EvidenceUploader label="Marking photos" hint="Owner Mark and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values => setEvidence('markingPhotos', values)} onError={setError} />
             <EvidenceUploader label="Receipts & invoices" hint="Images or PDF purchase records" itemId={draft.id} kind="receipt" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('receiptFiles', values)} onError={setError} />
             <EvidenceUploader label="Appraisals" hint="Images or PDF appraisal records" itemId={draft.id} kind="appraisal" values={draft.appraisalFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('appraisalFiles', values)} onError={setError} />
             <EvidenceUploader label="Warranty files" hint="Images or PDF warranty records" itemId={draft.id} kind="warranty" values={draft.warrantyFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('warrantyFiles', values)} onError={setError} />

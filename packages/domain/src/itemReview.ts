@@ -75,7 +75,7 @@ export function itemReviewFlags(item: InventoryItem): ItemReviewFlag[] {
     flags.push({
       id: 'add-value',
       label: 'Add a value',
-      detail: 'Record a manual value or use Replacement Value Assist on Premium.',
+      detail: 'Record a manual value or use Value Assist on Premium.',
       priority: 'medium'
     });
   }

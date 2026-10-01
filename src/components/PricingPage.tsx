@@ -1,86 +1,57 @@
 import { ArrowLeft, ArrowRight, Check, LockKeyhole, ShieldCheck, Sparkles } from 'lucide-react';
-
-const premiumFeatures = [
-  '500 photo and value analyses each membership year',
-  'Make, model, and serial-number help from photos',
-  'Replacement Value Assist and saved comparable links',
-  'Private household records, autosave, and incident packets'
-];
+import { assetVaultPlans } from '../productPlans';
 
 export function PricingPage() {
   return <main className="pricingPage">
     <header className="landingNav pricingNav">
-      <a className="accountBrand pricingBrand" href="/"><ShieldCheck /><b>ProofVault</b></a>
+      <a className="accountBrand pricingBrand" href="/"><ShieldCheck /><b>AssetVault</b></a>
       <div className="landingNavActions"><a href="/">Home</a><a href="/#demo">Try the demo</a><a href="/#early-access">Join early access</a></div>
     </header>
 
     <section className="pricingHero">
-      <p className="eyebrow green">FOUNDING HOUSEHOLD OFFER</p>
-      <h1>Protect your home records for less while ProofVault grows.</h1>
-      <p>For the first 500 paid customers, Premium is half price for two years. You get the full photo-first workflow—then decide whether to stay when the founding period ends.</p>
-      <div className="pricingHeroActions"><a className="primary pricingPrimary" href="/#early-access">Join the early-access list <ArrowRight /></a><a className="pricingBackLink" href="/"><ArrowLeft /> Back to ProofVault</a></div>
-      <small>Available to the first 500 paid customers. Joining early access is free and does not reserve a founding spot.</small>
+      <p className="eyebrow green">PROOF OF OWNERSHIP BEFORE YOU NEED IT</p>
+      <h1>Start free. See the proof you are missing.</h1>
+      <p>AssetVault Proof Check helps you document the first items that matter most, see whether they are claim-ready, and choose more protection only when it becomes useful.</p>
+      <div className="pricingHeroActions"><a className="primary pricingPrimary" href="/#early-access">Get notified when checkout opens <ArrowRight /></a><a className="pricingBackLink" href="/"><ArrowLeft /> Back to AssetVault</a></div>
+      <small>No payment is collected yet. Choose the plan that fits your situation, then join early access for the launch notice.</small>
     </section>
 
-    <section className="pricingCards" aria-label="ProofVault pricing">
-      <article className="priceCard freePlan">
-        <p className="eyebrow">START FREE</p>
-        <h2>Free</h2>
-        <div className="price"><strong>$0</strong><span>forever</span></div>
-        <p>Start your inventory at your own pace. No card required.</p>
-        <ul><li><Check />Manual inventory and values</li><li><Check />Three Try Before You Buy photo analyses</li><li><Check />Private account and autosave</li></ul>
-        <a href="/#early-access">Join early access <ArrowRight /></a>
-      </article>
+    <section className="pricingJourney" aria-label="How AssetVault starts free">
+      <article><span>1</span><div><p className="eyebrow green">START FREE WITH ASSETVAULT PROOF CHECK</p><h2>Find out whether your valuables are claim-ready.</h2><p>Use photos, Serial Tracker, Owner Marks, manual values, and a basic Proof Score to get a real readiness diagnosis.</p></div></article>
+      <article><span>2</span><div><p className="eyebrow green">DOCUMENT YOUR FIRST 10 HIGH-RISK ASSETS</p><h2>Focus on what you would most regret losing.</h2><p>Start with jewelry, tools, electronics, bikes, equipment, storage contents, and anything that would be hard to prove after a loss.</p></div></article>
+      <article><span>3</span><div><p className="eyebrow green">UPGRADE WHEN YOU ARE READY</p><h2>Turn your inventory into claim-ready proof.</h2><p>Complete adds current replacement-value links, multiple locations, documents, shared access, and faster police and insurance packets.</p></div></article>
+    </section>
 
-      <article className="priceCard foundingPlan">
-        <span className="priceBadge">BEST FOUNDING VALUE</span>
-        <p className="eyebrow green">FIRST 500 PAID CUSTOMERS</p>
-        <h2>Founding Annual</h2>
-        <div className="price"><strong>$29.99</strong><span>per year for 2 years</span></div>
-        <p className="priceSub">That is about $2.50/month, paid annually.</p>
-        <ul>{premiumFeatures.map(feature => <li key={feature}><Check />{feature}</li>)}</ul>
-        <a className="primary" href="/#early-access">Get notified when checkout opens <ArrowRight /></a>
-        <small>Renews at the current annual price of $49.99/year after your second paid year.</small>
-      </article>
-
-      <article className="priceCard monthlyPlan">
-        <p className="eyebrow green">FIRST 500 PAID CUSTOMERS</p>
-        <h2>Founding Monthly</h2>
-        <div className="price"><strong>$2.99</strong><span>per month for 2 years</span></div>
-        <p className="priceSub">Half of the current $5.99 monthly rate.</p>
-        <ul>{premiumFeatures.map(feature => <li key={feature}><Check />{feature}</li>)}</ul>
-        <a href="/#early-access">Get notified when checkout opens <ArrowRight /></a>
-        <small>Moves to the current $5.99/month rate after 24 paid months.</small>
-      </article>
+    <section className="pricingCards assetVaultPricingCards" aria-label="AssetVault pricing">
+      {assetVaultPlans.filter(plan=>plan.id!=='incident-complete').map(plan => <article className={`priceCard ${plan.id === 'complete' ? 'foundingPlan' : ''}`} key={plan.id}>
+        {plan.id === 'complete' && <span className="priceBadge">MOST HOUSEHOLDS START HERE</span>}
+        <p className="eyebrow green">{plan.cadence.toUpperCase()}</p>
+        <h2>{plan.name.replace('AssetVault ', '')}</h2>
+        <div className="price"><strong>{plan.price}</strong><span>{plan.cadence}</span></div>
+        <p className="priceSub">{plan.outcome}</p>
+        <p>{plan.audience}</p>
+        <ul>{plan.features.map(feature => <li key={feature}><Check />{feature}</li>)}</ul>
+        <a className={plan.id === 'complete' ? 'primary' : ''} href="/#early-access">Choose this path <ArrowRight /></a>
+      </article>)}
     </section>
 
     <section className="planComparison" aria-labelledby="compare-plans">
-      <div className="comparisonHeading"><p className="eyebrow green">WHAT CHANGES WITH PREMIUM</p><h2 id="compare-plans">Start free. Upgrade when the photo work matters.</h2><p>Free is useful for building records manually. Premium is for getting through a whole home faster and documenting the details that are hard to recreate later.</p></div>
-      <div className="comparisonTable" role="region" aria-label="Free and Premium plan comparison" tabIndex={0}>
-        <table>
-          <thead><tr><th scope="col">Feature</th><th scope="col">Free</th><th scope="col">Premium</th></tr></thead>
-          <tbody>
-            <tr><th scope="row">Manual item records, photos, and values</th><td><Check /><span>Included</span></td><td><Check /><span>Included</span></td></tr>
-            <tr><th scope="row">Try Before You Buy photo analysis</th><td><span>3 total</span></td><td><Check /><span>Included</span></td></tr>
-            <tr><th scope="row">Photo-based make, model, and serial-number help</th><td><span>Trial only</span></td><td><Check /><span>Included</span></td></tr>
-            <tr><th scope="row">Replacement Value Assist and comparable links</th><td><span>Manual values only</span></td><td><Check /><span>Included</span></td></tr>
-            <tr><th scope="row">Photo and value analyses</th><td><span>3 trial analyses</span></td><td><strong>500/year</strong></td></tr>
-            <tr><th scope="row">Marketplace links in incident packets</th><td><span>-</span></td><td><Check /><span>Included</span></td></tr>
-            <tr><th scope="row">Private account and autosave</th><td><Check /><span>Included</span></td><td><Check /><span>Included</span></td></tr>
-          </tbody>
-        </table>
+      <div className="comparisonHeading"><p className="eyebrow green">A CLEAR PATH FOR EVERY STAGE</p><h2 id="compare-plans">Start with proof. Add speed, sharing, or business controls when they matter.</h2><p>Proof Check makes a useful readiness audit free. Complete turns everyday inventory into claim-ready proof. Family and Business plans add the people and places that need to work together.</p></div>
+      <p className="incidentOffer">Need a polished police and insurance packet? Create one Incident Packet for $39, or get the packet plus one year of AssetVault Complete for $59.</p><div className="comparisonTable" role="region" aria-label="AssetVault plan comparison" tabIndex={0}>
+        <table><thead><tr><th scope="col">Outcome</th><th scope="col">Proof Check</th><th scope="col">Complete</th><th scope="col">Family / Business</th></tr></thead><tbody>
+          <tr><th scope="row">Know what you can prove today</th><td><Check /><span>Basic Proof Score</span></td><td><Check /><span>Full Proof Score</span></td><td><Check /><span>Across people and places</span></td></tr>
+          <tr><th scope="row">Identify and recover assets</th><td><span>Serials + Owner Marks</span></td><td><Check /><span>Serial Tracker + evidence</span></td><td><Check /><span>Shared records and labels</span></td></tr>
+          <tr><th scope="row">Estimate replacement cost</th><td><span>Manual values</span></td><td><Check /><span>Value Assist</span></td><td><Check /><span>Value Assist at scale</span></td></tr>
+          <tr><th scope="row">Respond to an incident</th><td><span>Basic export</span></td><td><Check /><span>Claim Ready + Law Enforcement packets</span></td><td><Check /><span>Shared team and household packets</span></td></tr>
+        </tbody></table>
       </div>
     </section>
 
     <section className="pricingTerms">
-      <div><Sparkles /><div><b>Simple, controlled photo analysis</b><p>Premium includes 500 analyses per membership year. Optional add-ons will be available for unusually large projects.</p></div></div>
-      <div><LockKeyhole /><div><b>No surprise terms</b><p>Your founding price lasts for your first two paid years. The regular renewal price is shown above before you join.</p></div></div>
+      <div><Sparkles /><div><b>Make the proof easier to build</b><p>Complete and above include photo-based descriptions, identifier recognition, and Value Assist—always review details before relying on them.</p></div></div>
+      <div><LockKeyhole /><div><b>Keep the emergency path open</b><p>AssetVault Incident Packet is a one-time option for non-subscribers who need a focused police and insurance export.</p></div></div>
     </section>
 
-    <section className="pricingFinePrint">
-      <h2>Founding offer terms</h2>
-      <p>The offer is limited to the first 500 customers who complete a paid Premium subscription, not the first 500 account sign-ups. The two-year founding rate begins with the first successful payment and applies while the subscription remains active. After that period, the subscription renews at the then-current standard rate shown above: $5.99/month or $49.99/year. Prices are in U.S. dollars and may exclude applicable taxes.</p>
-      <p><b>Prototype notice:</b> ProofVault does not process payments yet. Joining early access does not charge you or reserve a founding spot; it lets you hear when checkout is available.</p>
-    </section>
+    <section className="pricingFinePrint"><h2>Pricing availability</h2><p><b>Prototype notice:</b> AssetVault does not process payments yet. The plan cards describe the intended product; early-access registration does not charge you or reserve a plan.</p><p>Value Assist provides approximate replacement estimates from comparable listings. It is not an appraisal, guarantee of coverage, or confirmed insurance value.</p></section>
   </main>;
 }

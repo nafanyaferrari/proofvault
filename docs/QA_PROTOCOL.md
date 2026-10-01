@@ -1,6 +1,6 @@
-# ProofVault QA Protocol
+# AssetVault QA Protocol
 
-This protocol is the release gate for the current ProofVault web prototype and Expo/SQLite mobile scaffold. It is intentionally local-first: a test must not require a production account, a paid marketplace API, or real customer data.
+This protocol is the release gate for the current AssetVault web prototype and Expo/SQLite mobile scaffold. It is intentionally local-first: a test must not require a production account, a paid marketplace API, or real customer data.
 
 ## Automated release gate
 
@@ -27,9 +27,9 @@ The live tests use five stable, photo-realistic scenes in `tests/fixtures/photo-
 | Area | Automated check | Coverage |
 | --- | --- | --- |
 | Inventory | `tests/testing-protocol.test.ts` | Search, combined filters, identifiers, weak/strong records |
-| Owner-applied markings | `tests/testing-protocol.test.ts`, `tests/mobile-repository.integration.test.ts` | Marking persistence, search, completeness, export labels |
+| Owner Marks | `tests/testing-protocol.test.ts`, `tests/mobile-repository.integration.test.ts` | Marking persistence, search, completeness, export labels |
 | Photo analysis | `tests/analyze-item-provider.test.ts`, `e2e/photo-intake.spec.ts` | Provider output, serial verification, fallback labeling, multi-item review |
-| Replacement Value Assist | `tests/testing-protocol.test.ts` | High/medium/low confidence, no-comparable state, disclaimer |
+| Value Assist | `tests/testing-protocol.test.ts` | High/medium/low confidence, no-comparable state, disclaimer |
 | Incidents and exports | `tests/testing-protocol.test.ts`, `tests/logic.test.ts`, `e2e/core-protocol.spec.ts` | Statuses, 50+ rows, serial/marking separation, CSV/print/text output |
 | Free vs. premium | `e2e/core-protocol.spec.ts`, `tests/logic.test.ts` | Manual values stay free; automatic comparison is gated |
 | Mobile SQLite | `tests/mobile-repository.integration.test.ts` | Item/marking mapping, valuation rows, incident links, missing valuation safety |
@@ -56,7 +56,7 @@ Run this before a production deploy:
 3. Create a basic item, save it, refresh the browser, and confirm it persists.
 4. Create a complete drill record. Add item, serial, and marking photos; record the marking type and location; confirm all are separate on Item Detail.
 5. In free mode, confirm manual value entry works while automatic comparable lookup is locked and explained.
-6. Switch to Premium demo access. Run the mock valuation, select a comparable value, and confirm the range, confidence, checked time, link, and disclaimer appear.
+6. Switch to AssetVault Complete preview. Run the mock valuation, select a comparable value, and confirm the range, confidence, checked time, link, and disclaimer appear.
 7. Create an incident, assign an affected item a status, add incident-specific notes/photos, and open the text, CSV, and printable packet. Confirm serial number and owner-applied marking are separate fields.
 8. Test an empty or vague item with valuation. Confirm the no-comparables message recommends clearer name, make/model, photos, or a manual value instead of saving `$0`.
 9. Reset local demo data only after downloading a backup if the test data must be retained.

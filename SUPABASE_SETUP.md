@@ -1,4 +1,4 @@
-# Supabase free-tier setup for ProofVault
+# Supabase free-tier setup for AssetVault
 
 This adds the real backend foundation for the demo while keeping the local browser backup mode intact.
 
@@ -44,6 +44,6 @@ Go to Settings → Cloud sync. Send yourself a magic link, sign in, then upload 
 
 ## What this does not do yet
 
-- Household sharing is intentionally limited to one connected existing ProofVault account. The household owner connects it from Settings → Household access; both people should refresh after connecting.
+- Household sharing is intentionally limited to one connected existing AssetVault account. The household owner connects it from Settings → Household access; both people should refresh after connecting.
 - It does not enforce paid subscriptions server-side yet. Current premium/free mode is still demo-mode until real payments/auth claims are added.
 - It does not run live AI analysis yet. AI calls should be made from a backend endpoint so provider keys stay off the client.
