@@ -17,7 +17,7 @@ export function PricingPage() {
     </section>
 
     <section className="pricingJourney" aria-label="How AssetVault starts free">
-      <article><span>1</span><div><p className="eyebrow green">START FREE WITH ASSETVAULT PROOF CHECK</p><h2>Find out whether your valuables are claim-ready.</h2><p>Use photos, Serial Tracker, Owner Marks, manual values, and a basic Proof Score to get a real readiness diagnosis.</p></div></article>
+      <article><span>1</span><div><p className="eyebrow green">START FREE WITH ASSETVAULT PROOF CHECK</p><h2>Find out whether your valuables are claim-ready.</h2><p>Use photos, Serial Tracker, owner-applied markings, manual values, and a basic Proof Score to get a real readiness diagnosis.</p></div></article>
       <article><span>2</span><div><p className="eyebrow green">DOCUMENT YOUR FIRST 10 HIGH-RISK ASSETS</p><h2>Focus on what you would most regret losing.</h2><p>Start with jewelry, tools, electronics, bikes, equipment, storage contents, and anything that would be hard to prove after a loss.</p></div></article>
       <article><span>3</span><div><p className="eyebrow green">UPGRADE WHEN YOU ARE READY</p><h2>Turn your inventory into claim-ready proof.</h2><p>Complete adds current replacement-value links, multiple locations, documents, shared access, and faster police and insurance packets.</p></div></article>
     </section>
@@ -40,7 +40,7 @@ export function PricingPage() {
       <p className="incidentOffer">Need a polished police and insurance packet? Create one Incident Packet for $39, or get the packet plus one year of AssetVault Complete for $59.</p><div className="comparisonTable" role="region" aria-label="AssetVault plan comparison" tabIndex={0}>
         <table><thead><tr><th scope="col">Outcome</th><th scope="col">Proof Check</th><th scope="col">Complete</th><th scope="col">Family / Business</th></tr></thead><tbody>
           <tr><th scope="row">Know what you can prove today</th><td><Check /><span>Basic Proof Score</span></td><td><Check /><span>Full Proof Score</span></td><td><Check /><span>Across people and places</span></td></tr>
-          <tr><th scope="row">Identify and recover assets</th><td><span>Serials + Owner Marks</span></td><td><Check /><span>Serial Tracker + evidence</span></td><td><Check /><span>Shared records and labels</span></td></tr>
+          <tr><th scope="row">Identify and recover assets</th><td><span>Serials + owner-applied markings</span></td><td><Check /><span>Serial Tracker + evidence</span></td><td><Check /><span>Shared records and labels</span></td></tr>
           <tr><th scope="row">Estimate replacement cost</th><td><span>Manual values</span></td><td><Check /><span>Value Assist</span></td><td><Check /><span>Value Assist at scale</span></td></tr>
           <tr><th scope="row">Respond to an incident</th><td><span>Basic export</span></td><td><Check /><span>Claim Ready + Law Enforcement packets</span></td><td><Check /><span>Shared team and household packets</span></td></tr>
         </tbody></table>

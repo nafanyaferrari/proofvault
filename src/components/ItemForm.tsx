@@ -215,9 +215,9 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
         </section>
 
         <section className="subSection">
-          <h3>Owner Marks</h3>
+          <h3>Owner-applied markings</h3>
           <p className="helper">Examples: initials, engravings, stickers, paint marks, QR tags, UV markings, distinctive damage, repairs, scratches, dents, welds, or modifications.</p>
-          <label className="toggleField"><input type="checkbox" checked={draft.hasOwnerMarking ?? Boolean(draft.ownerMarking)} onChange={event => set('hasOwnerMarking', event.target.checked)} />This item has an Owner Mark</label>
+          <label className="toggleField"><input type="checkbox" checked={draft.hasOwnerMarking ?? Boolean(draft.ownerMarking)} onChange={event => set('hasOwnerMarking', event.target.checked)} />This item has an owner-applied marking</label>
           <div className="fields two">
             <label>Marking text / description <input value={draft.ownerMarking ?? ''} onChange={text('ownerMarking')} /></label>
             <label>Marking type <select value={draft.markingType ?? ''} onChange={text('markingType')}><option value="">None</option><option>initials</option><option>engraved</option><option>paint</option><option>marker</option><option>sticker</option><option>QR/asset tag</option><option>UV marker</option><option>custom number</option><option>other</option></select></label>
@@ -252,7 +252,7 @@ export function ItemForm({ item, assisted = false, assistedWarnings = [], locati
           <h3>Additional documentation</h3>
           <p className="helper">If you are signed in with Supabase, new evidence uploads to private cloud storage. Otherwise it stays in this browser as demo/local data.</p>
           <div className="evidenceGrid">
-            <EvidenceUploader label="Marking photos" hint="Owner Mark and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values => setEvidence('markingPhotos', values)} onError={setError} />
+            <EvidenceUploader label="Marking photos" hint="Owner-applied marking and its location" itemId={draft.id} kind="marking" values={draft.markingPhotos} onChange={values => setEvidence('markingPhotos', values)} onError={setError} />
             <EvidenceUploader label="Receipts & invoices" hint="Images or PDF purchase records" itemId={draft.id} kind="receipt" values={draft.receiptFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('receiptFiles', values)} onError={setError} />
             <EvidenceUploader label="Appraisals" hint="Images or PDF appraisal records" itemId={draft.id} kind="appraisal" values={draft.appraisalFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('appraisalFiles', values)} onError={setError} />
             <EvidenceUploader label="Warranty files" hint="Images or PDF warranty records" itemId={draft.id} kind="warranty" values={draft.warrantyFiles} accept="image/*,.pdf,application/pdf" onChange={values => setEvidence('warrantyFiles', values)} onError={setError} />

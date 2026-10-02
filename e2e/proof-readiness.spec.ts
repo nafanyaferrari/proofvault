@@ -27,7 +27,7 @@ test.describe('AssetVault Proof Check activation', () => {
     await expect(page.getByRole('heading', { name: '5/10 assets documented' })).toBeVisible();
     await expect(page.getByText('YOUR PROOF READINESS')).toBeVisible();
     await expect(page.getByText('Missing serials')).toBeVisible();
-    await expect(page.getByText('Missing Owner Marks')).toBeVisible();
+    await expect(page.getByText('Missing owner-applied markings')).toBeVisible();
     await expect(page.getByText('Missing receipts/appraisals')).toBeVisible();
   });
 

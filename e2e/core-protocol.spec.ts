@@ -55,7 +55,7 @@ test.describe('core documentation and incident protocol', () => {
     await expect(page.getByRole('heading', { name: 'Testing burglary' })).toBeVisible();
     await expect(page.getByText('Claim Ready Report & Law Enforcement Packet')).toBeVisible();
     await page.getByText('Preview plain-text report').click();
-    await expect(page.getByText(/Owner Mark: NJR/)).toBeVisible();
+    await expect(page.getByText(/Owner-applied marking: NJR/)).toBeVisible();
     await expect(page.getByText(/not an appraisal/i)).toBeVisible();
   });
 });

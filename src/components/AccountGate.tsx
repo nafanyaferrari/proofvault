@@ -42,8 +42,8 @@ export function AccountGate({ status, onContinueLocal, onStatusChange, waitlistO
 
     <section className="accountHero landingHero">
       <p className="eyebrow green">PROOF OF OWNERSHIP BEFORE YOU NEED IT</p>
-      <h1>Could you prove what your home is worth if you had to do it today?</h1>
-      <p className="sub">AssetVault helps homeowners, renters, storage tenants, and businesses document valuables with photos, serial numbers, Owner Marks, receipts, appraisals, warranties, and replacement-value links—then create police and insurance packets when theft, disaster, or loss occurs.</p>
+      <h1>If disaster struck tonight, could you prove what was lost and what it was worth?</h1>
+      <p className="sub">AssetVault helps you document valuables with photos, serial numbers, owner-applied markings, receipts, and replacement values—before theft, fire, flood, or loss turns into a stressful claim.</p>
       <div className="landingHeroActions">
         <a className="primary landingPrimary" href="#early-access">Join the early-access list <ArrowRight /></a>
         <a className="landingTextLink" href="#why">See why AssetVault exists <ArrowDown /></a>
